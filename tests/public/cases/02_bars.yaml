@@ -1,0 +1,15 @@
+pipeline:
+  steps:
+    - id: trigger
+      kind: trigger.manual
+      config:
+        universe: ["AAPL", "MSFT"]
+      next: [bars]
+    - id: bars
+      kind: data.market_bars
+      config:
+        symbols: "$trigger['universe']"
+        lookback_days: 2
+expected:
+  bars:
+    AAPL: "*"
