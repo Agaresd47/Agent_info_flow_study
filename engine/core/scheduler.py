@@ -10,13 +10,13 @@ class PipelineScheduler:
         self.registry = registry
 
     async def execute(self, pipeline: Pipeline) -> Dict[str, Any]:
-        runtime = ExecutionContext(pipeline.pipeline_id or "unknown")
+        runtime = ExecutionContext(pipeline.pipeline_id or 'unknown')
         execution = _ExecutionGraph.from_pipeline(pipeline)
 
         while execution.has_waiting_steps():
             ready_batch = execution.pop_ready_batch()
             if not ready_batch:
-                raise ValueError("Deadlock detected. Pending: {0}".format(execution.list_waiting()))
+                raise ValueError('Deadlock detected. Pending: {0}'.format(execution.list_waiting()))
             for step_id in ready_batch:
                 step = execution.lookup(step_id)
                 result = await self._execute_step(step, runtime)
@@ -24,9 +24,9 @@ class PipelineScheduler:
                 execution.mark_complete(step_id)
 
         return {
-            "pipeline_id": pipeline.pipeline_id,
-            "status": "success",
-            "outputs": runtime.step_outputs,
+            'pipeline_id': pipeline.pipeline_id,
+            'status': 'success',
+            'outputs': runtime.step_outputs,
         }
 
     async def _execute_step(self, step: Step, context: ExecutionContext) -> Any:
@@ -39,11 +39,11 @@ class PipelineScheduler:
             return {key: self._resolve(item, context) for key, item in value.items()}
         if isinstance(value, list):
             return [self._resolve(item, context) for item in value]
-        if isinstance(value, str) and value.startswith("$"):
+        if isinstance(value, str) and value.startswith('$'):
             try:
                 return context.resolve_reference(value)
-            except Exception:
-                return value
+            except Exception as exc:
+                raise ValueError('Unresolved reference {0}: {1}'.format(value, exc))
         return value
 
     def _get_refs(self, step: Step) -> Set[str]:
@@ -58,8 +58,8 @@ class PipelineScheduler:
                 for item in value:
                     walk(item)
                 return
-            if isinstance(value, str) and value.startswith("$"):
-                refs.add(value[1:].split("[")[0].split(".")[0])
+            if isinstance(value, str) and value.startswith('$'):
+                refs.add(value[1:].split('[')[0].split('.')[0])
 
         walk(step.config)
         return refs
@@ -91,7 +91,7 @@ class _ExecutionGraph:
         self._queued: Set[str] = set(waiting)
 
     @classmethod
-    def from_pipeline(cls, pipeline: Pipeline) -> "_ExecutionGraph":
+    def from_pipeline(cls, pipeline: Pipeline) -> '_ExecutionGraph':
         steps_by_id = {step.id: step for step in pipeline.steps}
         dependencies = cls._collect_dependencies(pipeline)
         starters = deque(step.id for step in pipeline.steps if not dependencies.get(step.id))
@@ -161,8 +161,8 @@ class _ExecutionGraph:
                 for nested in item:
                     walk(nested)
                 return
-            if isinstance(item, str) and item.startswith("$"):
-                refs.add(item[1:].split("[")[0].split(".")[0])
+            if isinstance(item, str) and item.startswith('$'):
+                refs.add(item[1:].split('[')[0].split('.')[0])
 
         walk(value)
         return refs
