@@ -7,12 +7,8 @@ import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT.parent))
-sys.path.insert(0, str(ROOT))
 
-try:
-    from quant_react_interview.engine.core.engine import PipelineEngine
-except Exception:
-    from engine.core.engine import PipelineEngine
+from quant_react_interview.engine.core.engine import PipelineEngine
 
 
 class CaseRunner:
@@ -27,25 +23,25 @@ class CaseRunner:
         return passed
 
     async def run_one(self, case_path: Path) -> bool:
-        print('Running {0}'.format(case_path.name))
+        print("Running {0}".format(case_path.name))
         case = self._load_case(case_path)
         try:
-            result = await self.engine.run_pipeline(case['pipeline'])
+            result = await self.engine.run_pipeline(case["pipeline"])
         except Exception as exc:
-            print('  ERROR: {0}'.format(exc))
+            print("  ERROR: {0}".format(exc))
             return False
 
-        failures = self._collect_failures(case['expected'], result['outputs'])
+        failures = self._collect_failures(case["expected"], result["outputs"])
         if failures:
             for failure in failures:
-                print('  FAIL: {0}'.format(failure))
+                print("  FAIL: {0}".format(failure))
             return False
 
-        print('  PASS')
+        print("  PASS")
         return True
 
     def _load_case(self, case_path: Path) -> Dict[str, Any]:
-        with open(case_path, 'r', encoding='utf-8') as handle:
+        with open(case_path, "r", encoding="utf-8") as handle:
             return yaml.safe_load(handle)
 
     def _collect_failures(self, expected: Dict[str, Any], actual: Dict[str, Any]) -> List[str]:
@@ -53,12 +49,12 @@ class CaseRunner:
         for key, expected_value in expected.items():
             actual_value = actual.get(key)
             if not _matches(expected_value, actual_value):
-                failures.append('{0} expected {1}, got {2}'.format(key, expected_value, actual_value))
+                failures.append("{0} expected {1}, got {2}".format(key, expected_value, actual_value))
         return failures
 
 
 def _matches(expected: Any, actual: Any) -> bool:
-    if expected == '*':
+    if expected == "*":
         return actual is not None
     if expected is None:
         return actual is None
@@ -77,11 +73,11 @@ def _matches(expected: Any, actual: Any) -> bool:
 
 
 async def main() -> None:
-    case_paths = sorted((ROOT / 'tests' / 'public' / 'cases').glob('*.yaml'))
+    case_paths = sorted((ROOT / "tests" / "public" / "cases").glob("*.yaml"))
     runner = CaseRunner()
     passed = await runner.run_all(case_paths)
-    print('Summary: {0}/{1} passed'.format(passed, len(case_paths)))
+    print("Summary: {0}/{1} passed".format(passed, len(case_paths)))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(main())
