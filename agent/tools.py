@@ -15,18 +15,42 @@ def bind_builder(builder: PipelineBuilder) -> None:
 
 
 def get_tool_specs() -> List[Dict[str, Any]]:
-    object_schema = {"type": "object"}
+    config_schema = {
+        "type": "object",
+        "description": "Configuration for the step. Use only the fields that match the selected step kind.",
+        "properties": {
+            "universe": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Universe list for trigger.manual output.",
+            },
+            "symbols": {
+                "description": "List of BaoStock symbols or a reference like '$trigger_id[\"universe\"]'.",
+                "anyOf": [
+                    {"type": "array", "items": {"type": "string"}},
+                    {"type": "string"}
+                ]
+            },
+            "lookback_days": {"type": "integer", "description": "Number of calendar days to request from BaoStock."},
+            "bars": {"type": "string", "description": "Reference to grouped bar output, e.g. '$data_market_bars'."},
+            "window": {"type": "integer", "description": "Lookback window used by factor.momentum."},
+            "values": {"type": "string", "description": "Reference to a score dictionary, e.g. '$factor_momentum[\"scores\"]'."},
+            "descending": {"type": "boolean", "description": "Sort highest-to-lowest when true; default true."},
+            "prompt": {"type": "string", "description": "Prompt text for research_chat, often containing references like '$factor_rank[\"ordered\"]'."},
+            "model": {"type": "string", "description": "Optional model override for research_chat."},
+        }
+    }
     return [
         _function_spec(
             name="add_step",
             description=(
                 "Create a draft step inside the current research plan. "
-                "If the config shape is unclear, inspect the step kind first."
+                "Provide the config fields required for the selected kind."
             ),
             properties={
                 "kind": {"type": "string"},
                 "step_id": {"type": "string"},
-                "config": object_schema,
+                "config": config_schema,
             },
             required=["kind", "config"],
         ),
@@ -35,7 +59,7 @@ def get_tool_specs() -> List[Dict[str, Any]]:
             description="Modify a draft step's config and immediately re-evaluate that step.",
             properties={
                 "step_id": {"type": "string"},
-                "config": object_schema,
+                "config": config_schema,
             },
             required=["step_id", "config"],
         ),
@@ -50,19 +74,29 @@ def get_tool_specs() -> List[Dict[str, Any]]:
         ),
         _function_spec(
             name="get_catalog",
-            description="Inspect the available step kinds at a high level.",
+            description=(
+                "Inspect the available research step kinds at a high level. "
+                "Use this to discover available building blocks and their main outputs."
+            ),
             properties={},
             required=[],
         ),
         _function_spec(
             name="get_details",
-            description="Inspect one step kind in detail, including example config and notes.",
+            description=(
+                "Inspect a specific step kind in detail, including its required fields, "
+                "config schema, output fields, reference examples, and usage notes. "
+                "Use this before add_step or update_step to confirm the expected configuration shape."
+            ),
             properties={"kind": {"type": "string"}},
             required=["kind"],
         ),
         _function_spec(
             name="get_pipeline",
-            description="Export the current draft plan when it is coherent enough to run.",
+            description=(
+                "Export the current draft plan. Only call this when the plan is fully "
+                "connected and all steps have executed successfully."
+            ),
             properties={},
             required=[],
         ),
@@ -122,6 +156,7 @@ async def _add_step(builder: PipelineBuilder, payload: Dict[str, Any]) -> Dict[s
     )
     result = await _run_step(builder, created_id)
     result["action"] = "add_step"
+    result["current_draft_summary"] = builder.get_summary()
     return result
 
 
@@ -130,6 +165,7 @@ async def _update_step(builder: PipelineBuilder, payload: Dict[str, Any]) -> Dic
     builder.update_step(step_id, payload.get("config", {}))
     result = await _run_step(builder, step_id)
     result["action"] = "update_step"
+    result["current_draft_summary"] = builder.get_summary()
     return result
 
 
@@ -140,6 +176,7 @@ async def _connect_steps(builder: PipelineBuilder, payload: Dict[str, Any]) -> D
         "action": "connect_steps",
         "source_id": payload["source_id"],
         "target_id": payload["target_id"],
+        "current_draft_summary": builder.get_summary(),
     }
 
 
@@ -163,6 +200,25 @@ async def _get_pipeline(builder: PipelineBuilder, _: Dict[str, Any]) -> Dict[str
             "error": "Pipeline is empty",
             "pipeline": pipeline,
         }
+
+    # Verify all steps have successfully executed
+    failures = []
+    for step in pipeline["steps"]:
+        sid = step["id"]
+        status = builder.step_execution_results.get(sid, {})
+        if not status.get("success"):
+            error_msg = status.get("error", "Step has not been successfully executed yet.")
+            failures.append(f"Step '{sid}' ({step['kind']}): {error_msg}")
+
+    if failures:
+        return {
+            "success": False,
+            "action": "get_pipeline",
+            "error": "Pipeline export is blocked until every step executes successfully.",
+            "failures": failures,
+            "pipeline": pipeline,
+        }
+
     return {"success": True, "action": "get_pipeline", "pipeline": pipeline}
 
 

@@ -3,7 +3,7 @@ pipeline:
     - id: trigger
       kind: trigger.manual
       config:
-        universe: ["AAPL", "MSFT"]
+        universe: ["sh.600000", "sz.000001"]
       next: [bars]
     - id: bars
       kind: data.market_bars
@@ -12,4 +12,5 @@ pipeline:
         lookback_days: 2
 expected:
   bars:
-    AAPL: "*"
+    sh.600000: "*"
+    sz.000001: "*"

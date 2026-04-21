@@ -39,12 +39,34 @@ class PipelineScheduler:
             return {key: self._resolve(item, context) for key, item in value.items()}
         if isinstance(value, list):
             return [self._resolve(item, context) for item in value]
-        if isinstance(value, str) and value.startswith("$"):
-            try:
-                return context.resolve_reference(value)
-            except Exception:
-                return value
+        if isinstance(value, str):
+            if self._is_whole_reference(value):
+                return self._read_reference(value, context)
+            return self._interpolate_string(value, context)
         return value
+
+    def _is_whole_reference(self, value: str) -> bool:
+        return value.startswith("$") and " " not in value
+
+    def _interpolate_string(self, text: str, context: ExecutionContext) -> str:
+        import re
+        ref_pattern = re.compile(r"\$[A-Za-z_][A-Za-z0-9_]*(?:\[['\"][^'\"]+['\"]\]|\[\d+\])*")
+
+        def replace_match(match: re.Match) -> str:
+            ref = match.group(0)
+            try:
+                resolved = context.resolve_reference(ref)
+                return str(resolved)
+            except Exception:
+                return ref
+
+        return ref_pattern.sub(replace_match, text)
+
+    def _read_reference(self, reference: str, context: ExecutionContext) -> Any:
+        try:
+            return context.resolve_reference(reference)
+        except Exception:
+            return reference
 
     def _get_refs(self, step: Step) -> Set[str]:
         refs: Set[str] = set()
@@ -150,7 +172,9 @@ class _ExecutionGraph:
 
     @classmethod
     def _extract_refs(cls, value: Any) -> Set[str]:
+        import re
         refs: Set[str] = set()
+        ref_pattern = re.compile(r"\$([A-Za-z_][A-Za-z0-9_]*)")
 
         def walk(item: Any) -> None:
             if isinstance(item, dict):
@@ -161,8 +185,9 @@ class _ExecutionGraph:
                 for nested in item:
                     walk(nested)
                 return
-            if isinstance(item, str) and item.startswith("$"):
-                refs.add(item[1:].split("[")[0].split(".")[0])
+            if isinstance(item, str):
+                for match in ref_pattern.finditer(item):
+                    refs.add(match.group(1))
 
         walk(value)
         return refs

@@ -2,30 +2,29 @@ import json
 import os
 from typing import Any, Dict, List, Optional
 
+from dotenv import load_dotenv
 from openai import AsyncOpenAI
 
 from ..engine.core.builder import PipelineBuilder
 from .tools import bind_builder, execute_tool, get_tool_specs
 
-SYSTEM_PROMPT = """You operate a draft builder for quant research plans.
+load_dotenv()
 
-Available actions:
-- add_step
-- update_step
-- connect_steps
-- get_catalog
-- get_details
-- get_pipeline
+SYSTEM_PROMPT = """You build draft quant research pipelines through tool use.
 
-Operating rules:
-- Build the plan through tool calls, not plain-text answers.
-- `add_step` and `update_step` evaluate a step immediately and return either output or an error.
-- Use catalog inspection before guessing a config shape.
-- If a tool reports an error, repair the affected step instead of abandoning the draft.
-- Only call `get_pipeline` after the draft contains a coherent ordered path.
-
-For a simple momentum-ranking request, a sensible draft usually includes:
-trigger.manual -> data.market_bars -> factor.momentum -> factor.rank -> research_chat
+Guidelines:
+1. 'add_step' and 'update_step' expect a 'config' object with the fields required by the step kind.
+   Common patterns:
+   - trigger.manual: {"universe": ["sh.600000"]}
+   - data.market_bars: {"symbols": "$trigger_id['universe']"}
+   - factor.momentum: {"bars": "$data_id"}
+   - factor.rank: {"values": "$factor_id['scores']"}
+   - research_chat: {"prompt": "Analyze: $rank_id['ordered']"}
+2. When you choose a step_id, reuse that exact id in later references. Do not invent a new id in config strings.
+3. Use '$step_id' references to pass outputs between steps.
+4. If a step fails validation or execution, inspect the state and repair it with 'update_step'.
+5. Use 'connect_steps' to define execution order.
+6. Export with 'get_pipeline' only after every step has executed successfully.
 """
 
 
@@ -47,8 +46,14 @@ class ReactLoopAgent:
             prompt=prompt,
             iteration_limit=self.max_iters,
         )
-        transcript = await coordinator.run()
-        return {"pipeline": self.builder.get_pipeline(), "messages": transcript}
+        outcome = await coordinator.run()
+        return {
+            "pipeline": self.builder.get_pipeline(),
+            "messages": outcome["messages"],
+            "status": outcome["status"],
+            "termination_reason": outcome["termination_reason"],
+            "draft_summary": outcome["draft_summary"],
+        }
 
 
 class _LoopCoordinator:
@@ -67,19 +72,53 @@ class _LoopCoordinator:
 
     async def run(self) -> List[Dict[str, Any]]:
         turn_count = 0
+        consecutive_nudges = 0
+
         while turn_count < self.iteration_limit:
             turn_count += 1
             reply = await self._next_model_message()
             self.messages.append(self._format_assistant_turn(reply))
 
             if not reply.tool_calls:
-                self.messages.append(self._nudge_message())
+                consecutive_nudges += 1
+                state_summary = self._get_current_draft_summary()
+                self.messages.append(self._idle_message(consecutive_nudges, state_summary))
+                if consecutive_nudges >= 4:
+                    return self._finish(
+                        status="incomplete",
+                        termination_reason="idle_limit",
+                    )
                 continue
 
-            if await self._apply_requested_actions(reply.tool_calls):
-                break
+            consecutive_nudges = 0
+            tool_results = await self._apply_requested_actions(reply.tool_calls)
+            failures = [result for result in tool_results if not result.get("success", True)]
+            if failures:
+                state_summary = self._get_current_draft_summary()
+                self.messages.append(self._failure_message(failures, state_summary))
 
-        return self.messages
+            # Exit if get_pipeline succeeded
+            finished = any(
+                r.get("name") == "get_pipeline" and r.get("success")
+                for r in tool_results
+            )
+            if finished:
+                return self._finish(
+                    status="success",
+                    termination_reason="pipeline_exported",
+                )
+
+        return self._finish(
+            status="incomplete",
+            termination_reason="iteration_limit",
+        )
+
+    def _get_current_draft_summary(self) -> List[Dict[str, Any]]:
+        # Requires bind_builder
+        from .tools import _active_builder
+        if _active_builder:
+            return _active_builder.get_summary()
+        return []
 
     async def _next_model_message(self) -> Any:
         completion = await self.client.chat.completions.create(
@@ -91,19 +130,47 @@ class _LoopCoordinator:
         )
         return completion.choices[0].message
 
-    async def _apply_requested_actions(self, tool_calls: List[Any]) -> bool:
-        should_finish = False
+    async def _apply_requested_actions(self, tool_calls: List[Any]) -> List[Dict[str, Any]]:
+        results = []
         for tool_call in tool_calls:
             tool_message = await self._run_one_tool(tool_call)
             self.messages.append(tool_message)
-            if tool_call.function.name == "get_pipeline":
-                result = json.loads(tool_message["content"])
-                should_finish = bool(result.get("success"))
-        return should_finish
+            content = json.loads(tool_message["content"])
+            results.append(
+                {
+                    "name": tool_call.function.name,
+                    "success": content.get("success", True),
+                    "content": content,
+                    "error_stage": content.get("stage"),
+                    "step_id": content.get("step_id"),
+                    "error": content.get("error"),
+                }
+            )
+        return results
 
     async def _run_one_tool(self, tool_call: Any) -> Dict[str, Any]:
         raw_arguments = tool_call.function.arguments or "{}"
-        parsed_arguments = json.loads(raw_arguments)
+        try:
+            parsed_arguments = json.loads(raw_arguments)
+        except json.JSONDecodeError as exc:
+            return {
+                "role": "tool",
+                "tool_call_id": tool_call.id,
+                "name": tool_call.function.name,
+                "content": json.dumps(
+                    {
+                        "success": False,
+                        "error": (
+                            "Tool arguments must be valid JSON. "
+                            "Revise the arguments and retry the tool call. "
+                            "JSON parse error: {0}".format(str(exc))
+                        ),
+                        "stage": "tooling",
+                        "raw_arguments": raw_arguments,
+                    },
+                    ensure_ascii=True,
+                ),
+            }
         result = await execute_tool(tool_call.function.name, parsed_arguments)
         return {
             "role": "tool",
@@ -137,11 +204,59 @@ class _LoopCoordinator:
             },
         }
 
-    def _nudge_message(self) -> Dict[str, str]:
+    def _idle_message(
+        self,
+        consecutive_nudges: int,
+        state_summary: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, str]:
+        if consecutive_nudges == 1:
+            content = "Continue with tool use. Inspect the draft, add missing steps, or export when it is ready."
+        elif consecutive_nudges == 2:
+            content = "No tool call was made in the last turn. Use a tool to inspect or modify the draft before continuing."
+        elif consecutive_nudges == 3:
+            content = (
+                "The draft is not advancing. Use tools to repair or export it now. "
+                "If you need more context, inspect the catalog or step details."
+            )
+        else:
+            content = (
+                "The draft has stalled for several turns. This run will stop unless you advance it through tool use."
+            )
+        if state_summary:
+            content += "\n\nCurrent Draft State:\n" + json.dumps(state_summary, indent=2)
+
         return {
             "role": "user",
-            "content": (
-                "Continue through tool use. Inspect, repair, or extend the draft, "
-                "and only finish after exporting it with get_pipeline."
-            ),
+            "content": content,
+        }
+
+    def _failure_message(
+        self,
+        failures: List[Dict[str, Any]],
+        state_summary: List[Dict[str, Any]],
+    ) -> Dict[str, str]:
+        payload = {
+            "failures": [
+                {
+                    "tool": failure["name"],
+                    "stage": failure.get("error_stage"),
+                    "step_id": failure.get("step_id"),
+                    "error": failure.get("error"),
+                }
+                for failure in failures
+            ],
+            "draft_summary": state_summary,
+            "guidance": "Review the failures, repair invalid steps with update_step, and retry only when the draft is consistent.",
+        }
+        return {
+            "role": "user",
+            "content": "Tool execution failed.\n\n" + json.dumps(payload, indent=2),
+        }
+
+    def _finish(self, status: str, termination_reason: str) -> Dict[str, Any]:
+        return {
+            "messages": self.messages,
+            "status": status,
+            "termination_reason": termination_reason,
+            "draft_summary": self._get_current_draft_summary(),
         }

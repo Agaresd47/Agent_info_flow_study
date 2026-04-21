@@ -6,8 +6,8 @@ from ..base import BaseStep
 class RankStep(BaseStep):
     async def execute(self, config: Dict[str, Any], context: Any) -> Dict[str, Any]:
         values = config.get("values", {})
-        if not isinstance(values, dict):
-            raise ValueError("Rank step requires a score map in config.values")
+        if not isinstance(values, dict) or not values:
+            raise ValueError("Rank factor needs a score dictionary. Check your reference (e.g. $factor_id['scores']).")
         descending = bool(config.get("descending", True))
         ordered_pairs = sorted(values.items(), key=lambda item: item[1], reverse=descending)
         ordered = []

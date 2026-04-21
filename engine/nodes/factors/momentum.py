@@ -6,8 +6,8 @@ from ..base import BaseStep
 class MomentumStep(BaseStep):
     async def execute(self, config: Dict[str, Any], context: Any) -> Dict[str, Any]:
         bars = config.get("bars", {})
-        if not isinstance(bars, dict):
-            raise ValueError("Momentum step requires grouped bars")
+        if not isinstance(bars, dict) or not bars:
+            raise ValueError("Momentum factor needs a dictionary of bars. Check your data connection ($data_id).")
 
         scores: Dict[str, float] = {}
         total = len(bars)
