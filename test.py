@@ -1,47 +1,63 @@
 import asyncio
+import importlib
 import json
-import os
 import sys
 from pathlib import Path
 
-if __package__ in (None, ""):
-    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT.parent))
+PACKAGE = ROOT.name
 
-from quant_react_interview.agent.react_loop import ReactLoopAgent
-from quant_react_interview.engine.core.engine import PipelineEngine
-
-
-PROMPT = "Use the market bars to compute momentum, rank the symbols by momentum, and then explain the ranking."
+PipelineEngine = importlib.import_module(f"{PACKAGE}.engine.core.engine").PipelineEngine
 
 
-async def main():
-    print("Prompt:")
-    print(PROMPT)
-    print()
+PIPELINE = {
+    "pipeline_id": "manual_t2_smoke",
+    "name": "Manual T2 Smoke",
+    "steps": [
+        {
+            "id": "task",
+            "kind": "eval.task",
+            "config": {
+                "scenario": "planner_to_worker",
+                "request": "Move the logs somewhere else.",
+                "expected_clarifications": ["which logs", "destination"],
+                "risk_markers": ["overwrite"],
+            },
+            "next": ["spec"],
+        },
+        {
+            "id": "spec",
+            "kind": "planner.spec",
+            "config": {
+                "spec": {
+                    "objective": "Clarify log movement before doing file operations.",
+                    "actions": ["Ask which logs", "Ask destination", "Prepare dry run"],
+                    "constraints": ["Do not overwrite files"],
+                    "acceptance_criteria": ["User confirms proposed moves"],
+                    "clarifying_questions": ["Which logs?", "What destination?"],
+                    "risk_controls": ["Check overwrite conflicts before moving"],
+                }
+            },
+            "next": ["review"],
+        },
+        {
+            "id": "review",
+            "kind": "worker.review",
+            "config": {
+                "spec": "$spec",
+                "required_clarifications": "$task['expected_clarifications']",
+                "risk_markers": "$task['risk_markers']",
+            },
+        },
+    ],
+}
 
-    print("Environment:")
-    print("  REACT_MODEL =", os.getenv("REACT_MODEL", ""))
-    print("  OPENAI_BASE_URL =", os.getenv("OPENAI_BASE_URL", ""))
-    print("  OPENAI_API_KEY set =", bool(os.getenv("OPENAI_API_KEY")))
-    print()
 
-    agent = ReactLoopAgent()
-    result = await agent.run(PROMPT)
-    pipeline = result["pipeline"]
-
-    print("Generated Pipeline:")
-    print(json.dumps(pipeline, indent=2, ensure_ascii=False))
-    print()
-
+async def main() -> None:
     engine = PipelineEngine()
-    run_result = await engine.run_pipeline(pipeline)
-
-    print("Execution Result:")
-    print("  RUN_STATUS =", run_result["status"])
-    print("  RUN_OUTPUT_KEYS =", sorted(run_result["outputs"].keys()))
-    print()
-    print("Outputs:")
-    print(json.dumps(run_result["outputs"], indent=2, ensure_ascii=False))
+    result = await engine.run_pipeline(PIPELINE)
+    print(json.dumps(result, indent=2, ensure_ascii=False))
 
 
 if __name__ == "__main__":

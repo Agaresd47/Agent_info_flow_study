@@ -1,0 +1,113 @@
+pipeline:
+  pipeline_id: t2_revision_public
+  name: T2 Revision Public Case
+  steps:
+    - id: task
+      kind: eval.task
+      config:
+        scenario: planner_to_worker
+        request: "Rename the project files so they are easier to understand."
+        expected_clarifications:
+          - "which files to rename"
+          - "naming convention"
+        risk_markers:
+          - "overwrite"
+      next: [spec_v1]
+    - id: spec_v1
+      kind: planner.spec
+      config:
+        spec:
+          objective: "Rename project files."
+          actions:
+            - "Rename files."
+          constraints: []
+          acceptance_criteria: []
+          clarifying_questions:
+            - "Which files to rename?"
+          risk_controls: []
+      next: [review_v1]
+    - id: review_v1
+      kind: worker.review
+      config:
+        spec: "$spec_v1"
+        required_clarifications: "$task['expected_clarifications']"
+        risk_markers: "$task['risk_markers']"
+      next: [spec_v2]
+    - id: spec_v2
+      kind: planner.spec
+      config:
+        spec:
+          objective: "Rename only the files the user identifies, using the confirmed naming convention."
+          actions:
+            - "Ask which files to rename."
+            - "Ask for the naming convention."
+            - "List proposed old path to new path pairs."
+            - "Rename after confirmation."
+          constraints:
+            - "Do not rename unlisted files."
+            - "Do not overwrite existing files."
+          acceptance_criteria:
+            - "Every renamed file follows the confirmed naming convention."
+            - "No destination path existed before the rename."
+          clarifying_questions:
+            - "Which files to rename?"
+            - "What naming convention should be used?"
+          risk_controls:
+            - "Check overwrite conflicts before rename."
+      next: [review_v2]
+    - id: review_v2
+      kind: worker.review
+      config:
+        spec: "$spec_v2"
+        required_clarifications: "$task['expected_clarifications']"
+        risk_markers: "$task['risk_markers']"
+      next: [score]
+    - id: score
+      kind: revision.score
+      config:
+        before: "$review_v1"
+        after: "$review_v2"
+expected:
+  review_v1:
+    prompt_version: worker_interpretation_v1
+    worker_prompt_fields:
+      - understood_goal
+      - constraints_to_follow
+      - information_still_missing
+      - first_3_concrete_actions
+    information_still_missing:
+      - "which files to rename"
+    worker_rubric:
+      goal_understanding: 1
+      constraint_capture: 0
+      missing_info_awareness: 1
+      assumption_control: 1
+      actionability: 1
+  review_v2:
+    prompt_version: worker_interpretation_v1
+    worker_prompt_fields:
+      - understood_goal
+      - constraints_to_follow
+      - information_still_missing
+      - first_3_concrete_actions
+    information_still_missing:
+      - "which files to rename"
+      - "naming convention"
+    worker_rubric:
+      goal_understanding: 2
+      constraint_capture: 2
+      missing_info_awareness: 2
+      assumption_control: 2
+      actionability: 2
+  score:
+    improved: true
+    ready_after_revision: true
+    delta_worker_understanding: 6
+    misalignment_persistence_rate: 0.0
+    false_confidence_rate: 0.0
+    planner_rubric_after:
+      spec_completeness: 2
+      file_targeting_quality: 2
+      delegation_precision: 2
+      revision_gain: 2
+      overcorrection_control: 2

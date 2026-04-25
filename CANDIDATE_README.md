@@ -1,38 +1,39 @@
 # Candidate Guide
 
-This repo models a small quant-research drafting system.
+This repo models a small agent-evaluation system.
 
 You will find:
 
-- a YAML-based execution runtime
-- a handwritten LLM planning loop
-- a minimal generic tool layer
-- runtime steps that are intentionally unfinished
+- a YAML-based evaluation runtime
+- deterministic nodes for spec review and revision scoring
+- a small generic tool layer
+- intentionally incomplete planner/worker workflows
 
 ## Start Here
 
 Read these in order:
 
-1. [TASKS.md](/Users/wangshuo/Codes/nodie_interview/quant_react_interview/TASKS.md)
-2. [examples/momentum_pipeline.yaml](/Users/wangshuo/Codes/nodie_interview/quant_react_interview/examples/momentum_pipeline.yaml)
-3. [test.py](/Users/wangshuo/Codes/nodie_interview/quant_react_interview/test.py)
-4. [tests/public/cases](/Users/wangshuo/Codes/nodie_interview/quant_react_interview/tests/public/cases)
+1. `TASKS.md`
+2. `tests/public/cases`
+3. `agent/catalog.py`
+4. `agent/tools.py`
+5. `tests/run_tests.py`
 
 ## Useful Commands
 
-Run everything from [quant_react_interview](/Users/wangshuo/Codes/nodie_interview/quant_react_interview):
+Run everything from the repository root:
 
 ```bash
-python3 tests/run_tests.py
-python3 test.py
+python tests/run_tests.py
 ```
 
 ## What To Expect
 
 The starter repository is not supposed to be fully polished.
 
-Some parts are deliberately weak so you can improve them:
+Some parts are deliberately light so you can improve them:
 
-- the planner loop needs better recovery behavior
-- the generic tool surface needs better guidance for config-heavy tool calls
-- some runtime nodes are still mocks and should be replaced with real integrations
+- the T1 clarification rubric is only rule-based
+- the T2 worker-review schema is minimal
+- hidden-case design is not implemented yet
+- the planner loop is a shell, not a full production agent

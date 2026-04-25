@@ -17,27 +17,64 @@ def bind_builder(builder: PipelineBuilder) -> None:
 def get_tool_specs() -> List[Dict[str, Any]]:
     config_schema = {
         "type": "object",
-        "description": "Configuration for the step. Use only the fields that match the selected step kind.",
+        "description": "Configuration for the eval step. Use only fields that match the selected kind.",
         "properties": {
-            "universe": {
+            "request": {"type": "string", "description": "Original ambiguous user request for eval.task."},
+            "original_user_request": {"type": "string", "description": "Canonical T1 original user request; request is still accepted for legacy cases."},
+            "task_id": {"type": "string", "description": "Stable task identifier for run records."},
+            "scenario": {"type": "string", "description": "Short scenario label such as file_cleanup or planner_worker."},
+            "expected_clarifications": {"type": "array", "items": {"type": "string"}},
+            "missing_slots": {
                 "type": "array",
-                "items": {"type": "string"},
-                "description": "Universe list for trigger.manual output.",
+                "description": "Explicit T1 missing slots for deterministic slot matching.",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "slot_name": {"type": "string"},
+                        "importance": {"type": "string"},
+                        "description": {"type": "string"},
+                    },
+                },
             },
-            "symbols": {
-                "description": "List of BaoStock symbols or a reference like '$trigger_id[\"universe\"]'.",
-                "anyOf": [
-                    {"type": "array", "items": {"type": "string"}},
-                    {"type": "string"}
-                ]
+            "user_reply_if_asked": {
+                "type": "object",
+                "description": "Map from slot_name to simulator reply. The simulator must not invent values outside this map.",
             },
-            "lookback_days": {"type": "integer", "description": "Number of calendar days to request from BaoStock."},
-            "bars": {"type": "string", "description": "Reference to grouped bar output, e.g. '$data_market_bars'."},
-            "window": {"type": "integer", "description": "Lookback window used by factor.momentum."},
-            "values": {"type": "string", "description": "Reference to a score dictionary, e.g. '$factor_momentum[\"scores\"]'."},
-            "descending": {"type": "boolean", "description": "Sort highest-to-lowest when true; default true."},
-            "prompt": {"type": "string", "description": "Prompt text for research_chat, often containing references like '$factor_rank[\"ordered\"]'."},
-            "model": {"type": "string", "description": "Optional model override for research_chat."},
+            "environment_context": {
+                "type": "object",
+                "description": "OS/shell/workdir/tool policy for T1.",
+                "properties": {
+                    "os_type": {"type": "string"},
+                    "shell": {"type": "string"},
+                    "working_directory": {"type": "string"},
+                    "tools_allowed": {"type": "array", "items": {"type": "string"}},
+                    "tools_forbidden": {"type": "array", "items": {"type": "string"}},
+                },
+            },
+            "condition": {
+                "type": "object",
+                "description": "T1 condition such as {'spec_level':'A0_interactive','policy':'default','knowledge_level':'none'}.",
+            },
+            "model_id": {"type": "string", "description": "Configured or mock model id for run record metadata."},
+            "model_tier": {"type": "string", "description": "Model tier label such as mock, mid, planner, worker, or judge."},
+            "seed": {"type": "integer", "description": "Deterministic seed recorded in the run."},
+            "risk_markers": {"type": "array", "items": {"type": "string"}},
+            "risk_flags": {"type": "array", "items": {"type": "string"}},
+            "must_not_do": {"type": "array", "items": {"type": "string"}},
+            "structured_spec": {"type": "object", "description": "T1 structured spec with goal/scope/constraints/safety_requirements."},
+            "acceptance_criteria": {"type": "array", "items": {"type": "string"}},
+            "oracle_test": {"type": "object", "description": "Refs for outcome, robustness, and safety checks."},
+            "clarification_protocol": {"type": "object", "description": "Slot retrieval protocol; max rounds defaults to 2."},
+            "spec": {
+                "description": "Planner spec object, or a reference to one like '$spec_v1'.",
+                "anyOf": [{"type": "object"}, {"type": "string"}],
+            },
+            "required_clarifications": {
+                "description": "Clarifications the worker should expect, or a reference.",
+                "anyOf": [{"type": "array", "items": {"type": "string"}}, {"type": "string"}],
+            },
+            "before": {"description": "Reference to a worker.review output before revision.", "type": "string"},
+            "after": {"description": "Reference to a worker.review output after revision.", "type": "string"},
         }
     }
     return [

@@ -1,110 +1,91 @@
-# Quant Research Drafting Exercise
+# Agent Eval/Dev Exercise
 
 You have **2 hours** for this exercise.
 
 ## Project Snapshot
 
-This repository contains a small research-drafting system with two moving parts:
+This repository contains a small evaluation scaffold for agent development. It is designed around two related tasks:
 
-- a YAML runtime that executes step-based research plans
-- a handwritten agent loop that asks an LLM to assemble those plans through tool calls
+- **T1:** handling ambiguous, risky coding/bash/file-operation requests through clarification and spec strengthening
+- **T2:** transmitting planner-written specs to a worker, collecting worker feedback, and revising the spec
 
-The starter code is deliberately uneven. Some parts are real, some are placeholders, and some are just not robust enough yet.
+The starter code is deliberately incomplete. Some parts are deterministic, some are only metadata, and the model-facing loop is intentionally thin.
 
-Your job is to strengthen the system without changing its basic product shape.
+Your job is to strengthen the system without changing its basic shape.
 
 ## What The System Already Supports
 
 Step kinds currently visible to the planner:
 
-- `trigger.manual`
-- `data.market_bars`
-- `factor.momentum`
-- `factor.rank`
-- `research_chat`
-- `output.report`
+- `eval.task`
+- `planner.spec`
+- `worker.review`
+- `revision.score`
 
 Reference syntax uses values such as `$step_id['field']`.
 
-## Workstream 1: Replace The Mock Runtime Steps
+## Workstream 1: T1 Clarification Rubric
 
-Two runtime steps are placeholders in the starter repo:
+T1 measures whether an agent recognizes missing information before taking risky action.
 
-- `data.market_bars`
-- `research_chat`
+Focus scenarios:
 
-We want them turned into real integrations.
-
-### `data.market_bars`
-
-Implement this step with the BaoStock API.
-
-Expected support:
-
-- `symbols`
-- `lookback_days`
-
-Expected behavior:
-
-- log in to BaoStock
-- request daily bars for the requested symbols
-- convert the response into grouped bars by symbol
-- surface query failures clearly
-
-You may choose a reasonable date-window strategy from `lookback_days`.
-
-### `research_chat`
-
-Implement this step with a real chat-completions API.
-
-Expected support:
-
-- `prompt`
-- a sensible default model, or a configurable model field
-
-Expected behavior:
-
-- send the prompt to a real model
-- return generated text in a structured payload
-- surface API failures clearly
+- file moving and renaming
+- directory cleanup
+- batch shell commands
+- small script edits with unclear acceptance criteria
 
 Focus files:
 
-- `engine/nodes/data/market_bars.py`
-- `engine/nodes/ai/research_chat.py`
-
-## Workstream 2: Planner Runtime Reliability
-
-The handwritten agent loop is serviceable, but it is easy to derail.
-
-Today it tends to:
-
-- stop after an unhelpful assistant turn
-- fail to recover after a bad tool call
-- produce brittle conversations when tool outputs are ambiguous
-
-Focus files:
-
-- `agent/react_loop.py`
+- `engine/nodes/eval/task.py`
+- `engine/nodes/eval/planner_spec.py`
+- `tests/public/cases/01_t1_clarification.yaml`
 
 What we want from you:
 
-1. Make the loop more resilient while keeping it handwritten
-2. Keep the control flow understandable
-3. Prevent runaway behavior with a clear stop strategy
+1. Improve the fields used to describe ambiguity, risk, and required clarification
+2. Make the rubric strict enough to catch premature execution
+3. Keep public cases readable while leaving room for hidden cases
 
 When reviewing submissions here, we care about:
 
-- message sequencing
-- tool-result handling
-- failure recovery
-- termination rules
+- whether missing information is represented explicitly
+- whether destructive or irreversible operations are treated as risky
+- whether a stronger spec improves the score
 
-## Workstream 3: Stable Planning With Generic Tools
+## Workstream 2: T2 Planner-to-Worker Transmission
 
-This repo intentionally does **not** provide per-step helper tools.
+T2 measures whether a planner's spec is clear enough for a worker to understand and execute.
 
-The planner only gets a basic editing surface:
+It does not need to test full execution at first. The primary surface is spec transmission quality:
+
+- did the planner say enough?
+- did the worker catch the intended work?
+- did worker feedback help the planner produce a better second spec?
+
+Focus files:
+
+- `engine/nodes/eval/worker_review.py`
+- `engine/nodes/eval/revision_score.py`
+- `tests/public/cases/02_t2_revision.yaml`
+
+What we want from you:
+
+1. Make worker feedback structured and useful
+2. Score whether spec v2 is better than spec v1
+3. Preserve the distinction between "unclear but safe" and "clear but unsafe"
+
+When reviewing submissions here, we care about:
+
+- objective clarity
+- file/path specificity
+- constraints and forbidden actions
+- acceptance criteria
+- risk and rollback notes
+
+## Workstream 3: Planner Tooling
+
+The planner only gets a generic editing surface:
 
 - `add_step`
 - `update_step`
@@ -113,36 +94,25 @@ The planner only gets a basic editing surface:
 - `get_details`
 - `get_pipeline`
 
-The goal is to make that minimal tool surface usable for a simple research request.
-
-Target request:
-
-> Use the market bars to compute momentum, rank the symbols by momentum, and then explain the ranking.
+The goal is to make the minimal tool surface usable for drafting T1/T2 evaluation pipelines.
 
 Focus files:
 
 - `agent/tools.py`
 - `agent/catalog.py`
-- any planner prompt or loop logic you think is relevant
+- `agent/react_loop.py`
 
 What we want from you:
 
-1. Improve how the planner learns step shapes and config structure
-2. Keep the tool surface generic
-3. Increase the chances of getting a meaningful pipeline rather than an empty or hollow one
-
-When reviewing submissions here, we care about:
-
-- tool descriptions
-- schema clarity
-- metadata quality
-- how you handle open-ended config dictionaries
+1. Improve tool descriptions and config schemas
+2. Make catalog metadata useful to a model
+3. Keep the tools generic rather than adding one-off helpers for every case
 
 ## Interview Discussion
 
 Be ready to walk through:
 
-1. The control model you chose for the handwritten agent loop
-2. The limits of generic tools for LLM planning
-3. What makes a node catalog actually useful to a model
-4. How you would evolve this codebase for richer factor-research workflows
+1. What makes an ambiguous file-op task risky
+2. How you would separate clarification quality from execution quality
+3. How planner-to-worker specs should be graded
+4. How you would evolve this scaffold into hidden evals and model comparisons

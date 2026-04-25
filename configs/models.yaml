@@ -1,0 +1,77 @@
+models:
+  - model_id: mock_primary
+    provider: mock
+    api_model_name: mock-primary-v1
+    role_tags: [strong_ref, worker]
+    supports_json_mode: true
+    env:
+      api_key_var: null
+      base_url_var: null
+    pricing:
+      prompt_per_1k_usd: 0.0
+      completion_per_1k_usd: 0.0
+
+  - model_id: mock_planner
+    provider: mock
+    api_model_name: mock-planner-v1
+    role_tags: [planner]
+    supports_json_mode: true
+    env:
+      api_key_var: null
+      base_url_var: null
+    pricing:
+      prompt_per_1k_usd: 0.0
+      completion_per_1k_usd: 0.0
+
+  - model_id: mock_worker
+    provider: mock
+    api_model_name: mock-worker-v1
+    role_tags: [worker]
+    supports_json_mode: true
+    env:
+      api_key_var: null
+      base_url_var: null
+    pricing:
+      prompt_per_1k_usd: 0.0
+      completion_per_1k_usd: 0.0
+
+  - model_id: provider_stub_chat
+    provider: openai_compatible
+    api_model_name: set-in-.env-or-override
+    role_tags: [mid, worker, planner]
+    supports_json_mode: true
+    env:
+      api_key_var: EVAL_API_KEY
+      base_url_var: EVAL_BASE_URL
+      model_name_var: EVAL_MODEL_NAME
+    pricing:
+      prompt_per_1k_usd: null
+      completion_per_1k_usd: null
+
+  - model_id: gemini_flash_lite
+    provider: google_gemini
+    api_model_name: gemini-2.5-flash-lite
+    fallback_api_model_names:
+      - gemini-3.1-flash-lite-preview
+    role_tags: [mid, worker]
+    supports_json_mode: false
+    env:
+      api_key_var: GEMINI_API_KEY
+      base_url_var: null
+    pricing:
+      prompt_per_1k_usd: 0.0001
+      completion_per_1k_usd: 0.0004
+
+  - model_id: openai_gpt5_nano
+    provider: openai
+    api_model_name: gpt-5-nano
+    fallback_api_model_names: []
+    role_tags: [weak, worker]
+    supports_json_mode: true
+    env:
+      api_key_var: OPENAI_API_KEY
+      base_url_var: null
+    pricing:
+      prompt_per_1k_usd: 0.00005
+      completion_per_1k_usd: 0.0004
+      reasoning_per_1k_usd: 0.0001

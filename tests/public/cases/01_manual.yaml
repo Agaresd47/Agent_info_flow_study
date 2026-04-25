@@ -1,9 +1,0 @@
-pipeline:
-  steps:
-    - id: trigger
-      kind: trigger.manual
-      config:
-        universe: ["AAPL", "MSFT"]
-expected:
-  trigger:
-    universe: ["AAPL", "MSFT"]

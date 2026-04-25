@@ -1,25 +1,18 @@
 import json
-import os
 from typing import Any, Dict, List, Optional
-
-from dotenv import load_dotenv
-from openai import AsyncOpenAI
 
 from ..engine.core.builder import PipelineBuilder
 from .tools import bind_builder, execute_tool, get_tool_specs
 
-load_dotenv()
-
-SYSTEM_PROMPT = """You build draft quant research pipelines through tool use.
+SYSTEM_PROMPT = """You build draft agent-evaluation pipelines through tool use.
 
 Guidelines:
-1. 'add_step' and 'update_step' expect a 'config' object with the fields required by the step kind.
+1. 'add_step' and 'update_step' expect a 'config' object with the fields required by the eval step kind.
    Common patterns:
-   - trigger.manual: {"universe": ["sh.600000"]}
-   - data.market_bars: {"symbols": "$trigger_id['universe']"}
-   - factor.momentum: {"bars": "$data_id"}
-   - factor.rank: {"values": "$factor_id['scores']"}
-   - research_chat: {"prompt": "Analyze: $rank_id['ordered']"}
+   - eval.task: {"request": "Clean up this folder", "expected_clarifications": ["target folder"], "risk_markers": ["delete"]}
+   - planner.spec: {"spec": {"objective": "...", "actions": [...], "constraints": [...], "acceptance_criteria": [...]}}
+   - worker.review: {"spec": "$spec_v1", "required_clarifications": "$task['expected_clarifications']", "risk_markers": "$task['risk_markers']"}
+   - revision.score: {"before": "$review_v1", "after": "$review_v2"}
 2. When you choose a step_id, reuse that exact id in later references. Do not invent a new id in config strings.
 3. Use '$step_id' references to pass outputs between steps.
 4. If a step fails validation or execution, inspect the state and repair it with 'update_step'.
@@ -29,17 +22,16 @@ Guidelines:
 
 
 class ReactLoopAgent:
-    def __init__(self, builder: Optional[PipelineBuilder] = None):
+    def __init__(self, builder: Optional[PipelineBuilder] = None, client: Optional[Any] = None, model: str = "scaffold-model"):
         self.builder = builder or PipelineBuilder()
         bind_builder(self.builder)
-        self.client = AsyncOpenAI(
-            api_key=os.getenv("OPENAI_API_KEY"),
-            base_url=os.getenv("OPENAI_BASE_URL"),
-        )
-        self.model = os.getenv("REACT_MODEL", "gpt-4o-mini")
+        self.client = client
+        self.model = model
         self.max_iters = 12
 
     async def run(self, prompt: str) -> Dict[str, Any]:
+        if self.client is None:
+            raise RuntimeError("ReactLoopAgent needs an injected chat client before it can run model-backed planning.")
         coordinator = _LoopCoordinator(
             client=self.client,
             model=self.model,
@@ -59,7 +51,7 @@ class ReactLoopAgent:
 class _LoopCoordinator:
     def __init__(
         self,
-        client: AsyncOpenAI,
+        client: Any,
         model: str,
         prompt: str,
         iteration_limit: int,

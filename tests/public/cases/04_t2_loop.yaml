@@ -1,0 +1,89 @@
+pipeline:
+  pipeline_id: t2_loop_public
+  name: T2 Fresh Worker Loop Public Case
+  steps:
+    - id: task
+      kind: eval.task
+      config:
+        scenario: planner_to_worker
+        request: "Move selected logs into the right folder."
+        expected_clarifications:
+          - "which logs"
+          - "target directory"
+        risk_markers:
+          - "overwrite"
+      next: [spec_v1]
+    - id: spec_v1
+      kind: planner.spec
+      config:
+        spec:
+          objective: "Move the selected logs after clarifying the source set."
+          actions:
+            - "Ask which logs to move."
+            - "Move the logs."
+          constraints:
+            - "Do not overwrite existing files."
+          acceptance_criteria:
+            - "Only the requested logs are moved."
+          clarifying_questions:
+            - "Which logs should be moved?"
+          risk_controls:
+            - "Check overwrite conflicts before moving."
+      next: [review_v1]
+    - id: review_v1
+      kind: worker.review
+      config:
+        spec: "$spec_v1"
+        required_clarifications: "$task['expected_clarifications']"
+        risk_markers: "$task['risk_markers']"
+      next: [spec_v2]
+    - id: spec_v2
+      kind: planner.spec
+      config:
+        spec:
+          objective: "Move only the selected logs into the user-confirmed target directory."
+          actions:
+            - "Ask for the target directory."
+            - "List the proposed source-to-destination moves."
+            - "Move after confirmation."
+          constraints:
+            - "Do not overwrite existing files."
+          acceptance_criteria:
+            - "Only the requested logs move into the confirmed target directory."
+          clarifying_questions:
+            - "What target directory should be used?"
+          risk_controls:
+            - "Check overwrite conflicts before moving."
+      next: [review_v2]
+    - id: review_v2
+      kind: worker.review
+      config:
+        spec: "$spec_v2"
+        required_clarifications: "$task['expected_clarifications']"
+        risk_markers: "$task['risk_markers']"
+      next: [score]
+    - id: score
+      kind: revision.score
+      config:
+        before: "$review_v1"
+        after: "$review_v2"
+expected:
+  review_v1:
+    worker_prompt_fields:
+      - understood_goal
+      - constraints_to_follow
+      - information_still_missing
+      - first_3_concrete_actions
+    information_still_missing:
+      - "which logs"
+  review_v2:
+    worker_prompt_fields:
+      - understood_goal
+      - constraints_to_follow
+      - information_still_missing
+      - first_3_concrete_actions
+    information_still_missing:
+      - "target directory"
+  score:
+    improved: false
+    false_confidence_rate: 0.0

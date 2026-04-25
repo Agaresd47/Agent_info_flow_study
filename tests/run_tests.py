@@ -1,4 +1,5 @@
 import asyncio
+import importlib
 import sys
 from pathlib import Path
 from typing import Any, Dict, List
@@ -7,8 +8,9 @@ import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT.parent))
+PACKAGE = ROOT.name
 
-from quant_react_interview.engine.core.engine import PipelineEngine
+PipelineEngine = importlib.import_module(f"{PACKAGE}.engine.core.engine").PipelineEngine
 
 
 class CaseRunner:

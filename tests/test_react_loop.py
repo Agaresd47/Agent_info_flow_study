@@ -1,17 +1,21 @@
+import importlib
 import json
 import sys
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT.parent))
+PACKAGE = ROOT.name
 
-from quant_react_interview.agent.tools import _get_pipeline
-from quant_react_interview.agent.react_loop import _LoopCoordinator
-from quant_react_interview.engine.core.builder import PipelineBuilder
-from quant_react_interview.engine.nodes.data.market_bars import MarketBarsStep
+react_loop = importlib.import_module(f"{PACKAGE}.agent.react_loop")
+tools = importlib.import_module(f"{PACKAGE}.agent.tools")
+builder_module = importlib.import_module(f"{PACKAGE}.engine.core.builder")
+
+_LoopCoordinator = react_loop._LoopCoordinator
+_get_pipeline = tools._get_pipeline
+PipelineBuilder = builder_module.PipelineBuilder
 
 
 class ReactLoopEdgeCaseTests(unittest.IsolatedAsyncioTestCase):
@@ -26,7 +30,7 @@ class ReactLoopEdgeCaseTests(unittest.IsolatedAsyncioTestCase):
             id="call_1",
             function=SimpleNamespace(
                 name="add_step",
-                arguments='{"kind": "trigger.manual",',
+                arguments='{"kind": "eval.task",',
             ),
         )
 
@@ -35,12 +39,12 @@ class ReactLoopEdgeCaseTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertFalse(payload["success"])
         self.assertEqual(payload["stage"], "tooling")
-        self.assertEqual(payload["raw_arguments"], '{"kind": "trigger.manual",')
+        self.assertEqual(payload["raw_arguments"], '{"kind": "eval.task",')
         self.assertIn("valid JSON", payload["error"])
 
     async def test_get_pipeline_is_blocked_until_steps_execute_successfully(self) -> None:
         builder = PipelineBuilder()
-        builder.add_step("trigger.manual", {"universe": ["sh.600000"]}, "trigger")
+        builder.add_step("eval.task", {"request": "Clean up files."}, "task")
 
         result = await _get_pipeline(builder, {})
 
@@ -48,22 +52,7 @@ class ReactLoopEdgeCaseTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["action"], "get_pipeline")
         self.assertIn("blocked", result["error"])
         self.assertEqual(len(result["failures"]), 1)
-        self.assertIn("trigger", result["failures"][0])
-
-    async def test_market_bars_reports_symbol_level_query_failures(self) -> None:
-        step = MarketBarsStep()
-        login_result = SimpleNamespace(error_code="0", error_msg="")
-        logout_result = SimpleNamespace(error_code="0", error_msg="")
-        query_result = SimpleNamespace(error_code="1", error_msg="bad symbol", next=lambda: False)
-
-        with patch("quant_react_interview.engine.nodes.data.market_bars.bs.login", return_value=login_result), \
-             patch("quant_react_interview.engine.nodes.data.market_bars.bs.logout", return_value=logout_result), \
-             patch("quant_react_interview.engine.nodes.data.market_bars.bs.query_history_k_data_plus", return_value=query_result):
-            with self.assertRaises(RuntimeError) as exc:
-                await step.execute({"symbols": ["bad.symbol"], "lookback_days": 2}, None)
-
-        self.assertIn("bad.symbol", str(exc.exception))
-        self.assertIn("bad symbol", str(exc.exception))
+        self.assertIn("task", result["failures"][0])
 
     async def test_loop_returns_idle_limit_when_model_never_uses_tools(self) -> None:
         coordinator = _LoopCoordinator(
@@ -94,21 +83,21 @@ class ReactLoopEdgeCaseTests(unittest.IsolatedAsyncioTestCase):
         message = coordinator._failure_message(
             failures=[
                 {
-                    "name": "update_step",
+                    "name": "worker.review",
                     "error_stage": "execution",
-                    "step_id": "bars",
-                    "error": "missing symbols",
+                    "step_id": "review",
+                    "error": "spec must resolve to an object",
                 }
             ],
-            state_summary=[{"step_id": "bars", "execution_status": "Failed/Pending"}],
+            state_summary=[{"step_id": "review", "execution_status": "Failed/Pending"}],
         )
         payload = json.loads(message["content"].split("\n\n", 1)[1])
 
         self.assertEqual(message["role"], "user")
-        self.assertEqual(payload["failures"][0]["tool"], "update_step")
+        self.assertEqual(payload["failures"][0]["tool"], "worker.review")
         self.assertEqual(payload["failures"][0]["stage"], "execution")
-        self.assertEqual(payload["failures"][0]["step_id"], "bars")
-        self.assertEqual(payload["draft_summary"][0]["step_id"], "bars")
+        self.assertEqual(payload["failures"][0]["step_id"], "review")
+        self.assertEqual(payload["draft_summary"][0]["step_id"], "review")
 
 
 if __name__ == "__main__":

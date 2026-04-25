@@ -1,11 +1,9 @@
 from typing import Any, Dict, List, Optional, Type
 
-from ..nodes.ai.research_chat import ResearchChatStep
-from ..nodes.data.market_bars import MarketBarsStep
-from ..nodes.factors.momentum import MomentumStep
-from ..nodes.factors.rank import RankStep
-from ..nodes.output.report import ReportStep
-from ..nodes.triggers.manual import ManualTriggerStep
+from ..nodes.eval.planner_spec import PlannerSpecStep
+from ..nodes.eval.revision_score import RevisionScoreStep
+from ..nodes.eval.task import EvalTaskStep
+from ..nodes.eval.worker_review import WorkerReviewStep
 
 
 class RuntimeCatalog:
@@ -29,12 +27,10 @@ class RuntimeCatalog:
         self._constructors[kind] = step_cls
 
     def _install_defaults(self) -> None:
-        self.register("trigger.manual", ManualTriggerStep)
-        self.register("data.market_bars", MarketBarsStep)
-        self.register("factor.momentum", MomentumStep)
-        self.register("factor.rank", RankStep)
-        self.register("research_chat", ResearchChatStep)
-        self.register("output.report", ReportStep)
+        self.register("eval.task", EvalTaskStep)
+        self.register("planner.spec", PlannerSpecStep)
+        self.register("worker.review", WorkerReviewStep)
+        self.register("revision.score", RevisionScoreStep)
 
 
 _catalog_singleton: Optional[RuntimeCatalog] = None

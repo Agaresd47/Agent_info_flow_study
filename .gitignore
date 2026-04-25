@@ -10,3 +10,10 @@ venv/
 *.log
 output.json
 scratch/
+codex/
+internal_document/
+runs/raw/*.yaml
+runs/scored/*.yaml
+!runs/raw/.gitkeep
+!runs/scored/.gitkeep
+code_source/

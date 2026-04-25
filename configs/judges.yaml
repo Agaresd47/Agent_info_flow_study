@@ -1,0 +1,29 @@
+slot_matcher:
+  model_id: mock_slot_matcher
+  provider: mock
+  api_model_name: mock-slot-matcher-v1
+  purpose: classify_question_to_slot
+  output_contract:
+    type: enum
+    allowed_values: [slot_name, no_match]
+
+rubric_judge:
+  model_id: mock_rubric_judge
+  provider: mock
+  api_model_name: mock-rubric-judge-v1
+  purpose: rubric_scoring
+  output_contract:
+    type: json
+    schema_ref: rubrics/
+
+manual_review:
+  sample_size_target: 30
+  export_fields:
+    - run_id
+    - task_id
+    - episode_id
+    - model_id
+    - final_verdict
+    - error_taxonomy_primary
+    - error_taxonomy_secondary
+    - judge_notes
