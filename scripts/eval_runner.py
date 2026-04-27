@@ -20,8 +20,25 @@ sys.path.insert(0, str(ROOT))
 from engine.nodes.eval.planner_spec import PlannerSpecStep
 from engine.nodes.eval.revision_score import RevisionScoreStep
 from engine.nodes.eval.slot_matcher import build_slot_classification_prompt, parse_slot_name
-from engine.nodes.eval.t1_runtime import build_t1_task_payload, run_t1_auto_eval
+from engine.nodes.eval.t1_harness import build_agent_step_prompt, parse_action_json, run_t1_agent_eval
+from engine.nodes.eval.t1_runtime import build_t1_task_payload
 from engine.nodes.eval.worker_review import WorkerReviewStep
+
+T1_READ_ONLY_CONDITIONS = {
+    "A0_strict",
+    "A0_interactive",
+    "A0_interactive_guardrailed",
+    "A1",
+    "A1_guardrailed",
+    "A2",
+}
+T1_CLI_TEST_CONDITIONS = {
+    "A0_interactive",
+    "A0_interactive_guardrailed",
+    "A1",
+    "A1_guardrailed",
+}
+T1_SLICES = {"read_only", "cli_test"}
 
 
 def load_yaml(path: Path) -> Dict[str, Any]:
@@ -101,15 +118,65 @@ def write_run_output(path: Path, payload: Dict[str, Any]) -> None:
         yaml.safe_dump(payload, handle, sort_keys=False, allow_unicode=True)
 
 
-def select_tasks(mode: str, data_dir: Path) -> List[Path]:
+def infer_t1_slice(task_config: Dict[str, Any]) -> str:
+    explicit_slice = str(task_config.get("t1_slice") or task_config.get("slice") or "").strip().lower()
+    if explicit_slice in T1_SLICES:
+        return explicit_slice
+
+    environment = task_config.get("environment_context") if isinstance(task_config.get("environment_context"), dict) else {}
+    tool_context = task_config.get("tool_context") if isinstance(task_config.get("tool_context"), dict) else {}
+    tools_allowed = {
+        str(item).strip().lower()
+        for item in environment.get("tools_allowed", [])
+        if isinstance(environment.get("tools_allowed"), list)
+    }
+    tools_forbidden = {
+        str(item).strip().lower()
+        for item in environment.get("tools_forbidden", [])
+        if isinstance(environment.get("tools_forbidden"), list)
+    }
+    tool_mode = str(tool_context.get("mode") or "").strip().lower()
+
+    if "fixture_read_only_inspection" in tools_allowed or tool_mode == "fixture_read_only":
+        return "read_only"
+    if tools_allowed & {"bash", "powershell", "shell", "cmd", "sh"}:
+        return "cli_test"
+    if {"shell", "bash", "powershell", "cmd", "sh"} & tools_forbidden:
+        return "read_only"
+    return "read_only"
+
+
+def validate_t1_condition(condition: str, t1_slice: str) -> None:
+    if t1_slice == "all":
+        return
+    allowed = T1_READ_ONLY_CONDITIONS if t1_slice == "read_only" else T1_CLI_TEST_CONDITIONS
+    if condition not in allowed:
+        raise ValueError(
+            "Condition {0} is not supported for T1 slice {1}. Allowed conditions: {2}".format(
+                condition,
+                t1_slice,
+                ", ".join(sorted(allowed)),
+            )
+        )
+
+
+def select_tasks(mode: str, data_dir: Path, t1_slice: str = "all") -> List[Path]:
     if mode == "smoke":
-        return [data_dir / "t1_tasks" / "t1_smoke_cleanup_archive.yaml"]
-    return sorted((data_dir / "t1_tasks").glob("*.yaml"))
+        candidates = [data_dir / "t1_tasks" / "test_ground" / "t1_smoke_cleanup_archive.yaml"]
+    else:
+        candidates = sorted((data_dir / "t1_tasks").glob("*.yaml"))
+    if t1_slice == "all":
+        return candidates
+    selected = []
+    for task_path in candidates:
+        if infer_t1_slice(load_yaml(task_path)) == t1_slice:
+            selected.append(task_path)
+    return selected
 
 
 def select_episodes(mode: str, data_dir: Path) -> List[Path]:
     if mode == "smoke":
-        return [data_dir / "t2_episodes" / "t2_smoke_planner_worker.yaml"]
+        return [data_dir / "t2_episodes" / "test_ground" / "t2_smoke_planner_worker.yaml"]
     return sorted((data_dir / "t2_episodes").glob("*.yaml"))
 
 
@@ -375,6 +442,7 @@ def build_t1_run(
     slot_model: Optional[ProviderConfig] = None,
 ) -> Dict[str, Any]:
     task = build_t1_task_payload(task_config)
+    t1_slice = infer_t1_slice(task_config)
     config: Dict[str, Any] = {
         **task_config,
         "condition": {"spec_level": condition, "policy": "default", "knowledge_level": "none"},
@@ -386,6 +454,45 @@ def build_t1_run(
         "api_model_name": model.api_model_name,
     }
     if provider_mode == "real" and model.provider != "mock":
+        if _uses_bounded_harness(task):
+            provider_usage_parts: List[Dict[str, Any]] = []
+            provider_warnings: List[str] = []
+            provider_metadata: List[Dict[str, Any]] = []
+
+            def resolve_action(loop_state: Dict[str, Any]) -> Dict[str, Any]:
+                prompt = build_agent_step_prompt(loop_state)
+                result = call_provider(model, prompt)
+                provider_usage_parts.append(result.usage)
+                provider_warnings.extend(result.warnings)
+                provider_metadata.append(
+                    {
+                        "actual_model_name": result.actual_model_name,
+                        "provider": result.provider,
+                        "metadata": result.metadata,
+                        "raw_text": result.text,
+                    }
+                )
+                try:
+                    return parse_action_json(result.text)
+                except Exception:  # noqa: BLE001
+                    return {"action_type": "final_answer", "content": result.text, "targeted_slots": []}
+
+            config.update(
+                {
+                    "provider": model.provider,
+                    "api_model_name": model.api_model_name,
+                }
+            )
+            record = run_t1_agent_eval(task, config, action_resolver=resolve_action)
+            record["usage"] = combine_usage(provider_usage_parts) if provider_usage_parts else record.get("usage", {})
+            record["provider_warnings"] = provider_warnings
+            record["provider_response_metadata"] = {"agent_loop_calls": provider_metadata}
+            if provider_metadata:
+                record["model_id"] = provider_metadata[-1]["actual_model_name"]
+                record["api_model_name"] = provider_metadata[-1]["actual_model_name"]
+            record["t1_slice"] = t1_slice
+            return record
+
         if condition == "A0_interactive":
             provider_result = call_interactive_provider(task, model, slot_model or model)
         else:
@@ -404,7 +511,16 @@ def build_t1_run(
         )
         if "response_bundle" in provider_result.metadata:
             config["response_bundle"] = provider_result.metadata["response_bundle"]
-    return run_t1_auto_eval(task, config)
+        record = run_t1_agent_eval(task, config)
+        record["t1_slice"] = t1_slice
+        return record
+    record = run_t1_agent_eval(task, config)
+    record["t1_slice"] = t1_slice
+    return record
+
+
+def _uses_bounded_harness(task: Dict[str, Any]) -> bool:
+    return bool(task.get("preferred_first_action") or task.get("tool_context") or task.get("workspace_fixture"))
 
 
 def call_interactive_provider(task: Dict[str, Any], model: ProviderConfig, slot_model: ProviderConfig) -> ProviderResult:
@@ -578,21 +694,58 @@ def make_planner_spec_v2(episode: Dict[str, Any], review_v1: Dict[str, Any]) -> 
     }
 
 
-def write_t1_outputs(record: Dict[str, Any], raw_dir: Path, scored_dir: Path) -> None:
-    write_run_output(raw_dir / "{0}.yaml".format(record["run_id"]), record)
+def write_t1_outputs(record: Dict[str, Any], raw_dir: Path, scored_dir: Path) -> Dict[str, str]:
+    raw_yaml_path = raw_dir / "{0}.yaml".format(record["run_id"])
+    raw_json_path = raw_dir / "{0}.json".format(record["run_id"])
+    trace_dir = raw_dir.parent / "traces"
+    trace_json_path = trace_dir / "{0}.json".format(record["run_id"])
+    summary_dir = raw_dir.parent / "summaries"
+    summary_md_path = summary_dir / "{0}.md".format(record["run_id"])
+    scored_yaml_path = scored_dir / "{0}.yaml".format(record["run_id"])
+    artifact_refs = {
+        "raw_yaml": str(raw_yaml_path),
+        "raw_json": str(raw_json_path),
+        "trace_json": str(trace_json_path),
+        "summary_markdown": str(summary_md_path),
+        "scored_yaml": str(scored_yaml_path),
+    }
+    write_run_output(raw_yaml_path, {**record, "artifact_refs": artifact_refs})
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    raw_json_path.write_text(
+        json.dumps({**record, "artifact_refs": artifact_refs}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    trace_dir.mkdir(parents=True, exist_ok=True)
+    trace_json_path.write_text(
+        json.dumps(record.get("agent_trace", []), ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    summary_dir.mkdir(parents=True, exist_ok=True)
+    summary_md_path.write_text(
+        str(record.get("summary_markdown", "")),
+        encoding="utf-8",
+    )
     write_run_output(
-        scored_dir / "{0}.yaml".format(record["run_id"]),
+        scored_yaml_path,
         {
             "run_id": record["run_id"],
             "task_id": record["task_id"],
+            "t1_slice": record.get("t1_slice", "read_only"),
             "model_id": record["model_id"],
             "requested_model_id": record.get("requested_model_id"),
             "provider_warnings": record.get("provider_warnings", []),
             "final_verdict": record["auto_eval"]["final_verdict"],
             "rubric_eval": record["rubric_eval"],
             "error_taxonomy_primary": record["error_taxonomy_primary"],
+            "actual_first_action": record.get("actual_first_action"),
+            "preferred_first_action": record.get("preferred_first_action"),
+            "wrong_escalation": record.get("wrong_escalation"),
+            "forbidden_assumption": record.get("forbidden_assumption"),
+            "overall_score": record.get("overall_score"),
+            "artifact_refs": artifact_refs,
         },
     )
+    return artifact_refs
 
 
 def write_t2_outputs(record: Dict[str, Any], raw_dir: Path, scored_dir: Path) -> None:
@@ -621,23 +774,33 @@ async def run(args: argparse.Namespace) -> Dict[str, Any]:
     data_dir = ROOT / "data"
     raw_dir = ROOT / "runs" / "raw"
     scored_dir = ROOT / "runs" / "scored"
-    summary: Dict[str, Any] = {"mode": args.mode, "track": args.track, "provider_mode": args.provider_mode, "runs": []}
+    t1_slice = getattr(args, "t1_slice", "all")
+    summary: Dict[str, Any] = {
+        "mode": args.mode,
+        "track": args.track,
+        "provider_mode": args.provider_mode,
+        "t1_slice": t1_slice,
+        "runs": [],
+    }
 
     if args.track in {"t1", "all"}:
+        validate_t1_condition(args.condition, t1_slice)
         model = registry.get(args.model)
         slot_model = registry.get(args.slot_model) if args.slot_model else model
-        for task_path in select_tasks(args.mode, data_dir):
+        for task_path in select_tasks(args.mode, data_dir, t1_slice=t1_slice):
             record = build_t1_run(load_yaml(task_path), model, args.condition, args.seed, args.provider_mode, slot_model)
-            write_t1_outputs(record, raw_dir, scored_dir)
+            artifact_refs = write_t1_outputs(record, raw_dir, scored_dir)
             summary["runs"].append(
                 {
                     "run_id": record["run_id"],
                     "track": "t1",
+                    "t1_slice": record.get("t1_slice", "read_only"),
                     "source": str(task_path.relative_to(ROOT)),
                     "model_id": record["model_id"],
                     "requested_model_id": record.get("requested_model_id"),
                     "warnings": record.get("provider_warnings", []),
                     "verdict": record["auto_eval"]["final_verdict"],
+                    "artifact_refs": artifact_refs,
                 }
             )
 
@@ -662,6 +825,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Eval runner scaffold with mock and provider smoke modes.")
     parser.add_argument("--mode", choices=["smoke", "pilot"], default="smoke")
     parser.add_argument("--track", choices=["t1", "t2", "all"], default="all")
+    parser.add_argument("--t1-slice", choices=["all", "read_only", "cli_test"], default="all")
     parser.add_argument("--provider-mode", choices=["mock", "real"], default="mock")
     parser.add_argument("--model", default="mock_primary")
     parser.add_argument("--slot-model", default=None)

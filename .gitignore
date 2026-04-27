@@ -10,10 +10,12 @@ venv/
 *.log
 output.json
 scratch/
+temp/
 codex/
 internal_document/
-runs/raw/*.yaml
-runs/scored/*.yaml
-!runs/raw/.gitkeep
-!runs/scored/.gitkeep
+runs/
+t1_llm_judge_matrix_*.json
 code_source/
+.claude/
+data/t1_tasks/test_ground/
+data/t2_episodes/test_ground/
