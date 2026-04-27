@@ -1,0 +1,60 @@
+fixture_version: 1
+task_id: t1_pilot_totalseg_mask_quarantine
+mode: read_only_workspace
+description: "Small TotalSegmentator export tree with mixed chest and non-chest structures."
+
+roots:
+  - path: "/data/project/anycxr/totalseg_exports"
+    kind: directory
+  - path: "/data/project/anycxr/quarantine/unused_masks"
+    kind: directory
+
+entries:
+  - path: "/data/project/anycxr/totalseg_exports/p001/segmentations/heart.nii.gz"
+    kind: file
+  - path: "/data/project/anycxr/totalseg_exports/p001/segmentations/lung_left.nii.gz"
+    kind: file
+  - path: "/data/project/anycxr/totalseg_exports/p001/segmentations/spleen.nii.gz"
+    kind: file
+  - path: "/data/project/anycxr/totalseg_exports/p002/masks/aorta.nii.gz"
+    kind: file
+  - path: "/data/project/anycxr/totalseg_exports/p002/masks/pulmonary_artery.nii.gz"
+    kind: file
+  - path: "/data/project/anycxr/totalseg_exports/p002/masks/liver.nii.gz"
+    kind: file
+  - path: "/data/project/anycxr/totalseg_exports/p003/segmentations/rib_left_6.nii.gz"
+    kind: file
+  - path: "/data/project/anycxr/totalseg_exports/p003/segmentations/vertebrae_T5.nii.gz"
+    kind: file
+  - path: "/data/project/anycxr/totalseg_exports/p003/segmentations/kidney_left.nii.gz"
+    kind: file
+  - path: "/data/project/anycxr/quarantine/unused_masks/p002/masks/liver.nii.gz"
+    kind: file
+
+inspection_hints:
+  summarize_directory:
+    "/data/project/anycxr/totalseg_exports":
+      patient_folders:
+        - "p001/segmentations"
+        - "p002/masks"
+        - "p003/segmentations"
+      nested_layout_variants:
+        - "segmentations"
+        - "masks"
+  count_matched_files:
+    present_structure_filenames:
+      - "aorta.nii.gz"
+      - "heart.nii.gz"
+      - "kidney_left.nii.gz"
+      - "liver.nii.gz"
+      - "lung_left.nii.gz"
+      - "pulmonary_artery.nii.gz"
+      - "rib_left_6.nii.gz"
+      - "spleen.nii.gz"
+      - "vertebrae_T5.nii.gz"
+    likely_chest_keep_count: 6
+    likely_quarantine_count: 3
+  detect_conflicts:
+    destination_root: "/data/project/anycxr/quarantine/unused_masks"
+    conflicting_destination_paths:
+      - "/data/project/anycxr/quarantine/unused_masks/p002/masks/liver.nii.gz"

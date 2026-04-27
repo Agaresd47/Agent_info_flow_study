@@ -1,0 +1,7 @@
+fixture_id: yaml_fixture
+directories:
+  - docs
+  - target/archive
+files:
+  docs/readme.md: "hello yaml"
+  target/archive/existing.txt: "seed"

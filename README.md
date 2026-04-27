@@ -12,6 +12,17 @@ The current target has two tracks:
 - **T1:** multi-turn requirement clarification and spec strengthening for risky coding/bash/file-op tasks
 - **T2:** planner-to-worker spec transmission, worker feedback, and one-round spec revision
 
+## Planned Model Lineup
+
+The current planned external model lineup for benchmark comparison is:
+
+- `Claude Haiku 4.5`: lightweight strong international baseline
+- `Qwen3-Coder-Next`: primary domestic coding/agent model
+- `GLM-5`: strong domestic reference
+- `Qwen3 32B dense`: weaker non-specialized control
+
+Current expectation is to access these through Amazon Bedrock rather than direct provider APIs. Task-level model allocation for T1, T2, and judge roles is still intentionally left open.
+
 ## Repository Landmarks
 
 - `TASKS.md`: interview requirements and expected workstreams

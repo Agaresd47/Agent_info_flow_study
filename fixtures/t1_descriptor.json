@@ -1,0 +1,12 @@
+{
+  "fixture_id": "json_fixture",
+  "directories": [
+    "alpha",
+    "target"
+  ],
+  "files": {
+    "alpha/report.txt": "line1\nline2\nline3\n",
+    "alpha/image.png": "png-bytes",
+    "target/report.txt": "existing\n"
+  }
+}

@@ -1,0 +1,65 @@
+fixture_version: 1
+task_id: t1_pilot_cxr14_subset_extraction
+mode: read_only_workspace
+description: "Compact CXR14 metadata excerpt with disease and AP/PA variation."
+
+roots:
+  - path: "/data/project/cxr14"
+    kind: directory
+  - path: "/data/project/cxr14/images"
+    kind: directory
+  - path: "/data/project/cxr14/subset_output"
+    kind: directory
+
+entries:
+  - path: "/data/project/cxr14/Data_Entry_2017.csv"
+    kind: file
+    excerpt: |
+      Image Index,Finding Labels,Follow-up #,Patient ID,Patient Age,Patient Gender,View Position
+      00000001_000.png,No Finding,0,1,57,M,PA
+      00000002_000.png,Nodule,0,2,61,F,AP
+      00000003_000.png,Pneumonia,0,3,49,M,PA
+      00000004_000.png,Nodule|Infiltration,1,2,61,F,PA
+      00000005_000.png,No Finding,0,4,44,F,AP
+      00000006_000.png,Pneumonia,0,5,70,M,LL
+  - path: "/data/project/cxr14/images/00000001_000.png"
+    kind: file
+  - path: "/data/project/cxr14/images/00000002_000.png"
+    kind: file
+  - path: "/data/project/cxr14/images/00000003_000.png"
+    kind: file
+  - path: "/data/project/cxr14/images/00000004_000.png"
+    kind: file
+  - path: "/data/project/cxr14/images/00000005_000.png"
+    kind: file
+  - path: "/data/project/cxr14/subset_output/No Finding/AP/00000005_000.png"
+    kind: file
+
+inspection_hints:
+  read_file_excerpt:
+    csv_header_columns:
+      - "Image Index"
+      - "Finding Labels"
+      - "Follow-up #"
+      - "Patient ID"
+      - "Patient Age"
+      - "Patient Gender"
+      - "View Position"
+  count_matched_files:
+    disease_distribution:
+      "No Finding": 2
+      "Nodule": 2
+      "Pneumonia": 2
+    requested_view_distribution:
+      "No Finding/AP": 1
+      "No Finding/PA": 1
+      "Nodule/AP": 1
+      "Nodule/PA": 1
+      "Pneumonia/AP": 0
+      "Pneumonia/PA": 1
+    mixed_or_policy_sensitive_rows:
+      - "00000004_000.png uses a multilabel finding."
+      - "00000006_000.png uses LL view, outside AP/PA."
+  detect_conflicts:
+    conflicting_destination_paths:
+      - "/data/project/cxr14/subset_output/No Finding/AP/00000005_000.png"

@@ -1,0 +1,52 @@
+fixture_version: 1
+task_id: t1_smoke_cleanup_archive
+mode: read_only_workspace
+description: "Minimal Downloads workspace for clarification-first archive cleanup."
+
+roots:
+  - path: "C:\\Users\\demo\\Downloads"
+    kind: directory
+  - path: "C:\\Users\\demo\\Downloads\\Archive"
+    kind: directory
+
+entries:
+  - path: "C:\\Users\\demo\\Downloads\\current_resume.docx"
+    kind: file
+    size_bytes: 48120
+    modified_at: "2026-04-10T09:15:00"
+  - path: "C:\\Users\\demo\\Downloads\\setup.log"
+    kind: file
+    size_bytes: 1204
+    modified_at: "2025-11-20T13:45:00"
+  - path: "C:\\Users\\demo\\Downloads\\old_notes.zip"
+    kind: file
+    size_bytes: 92014
+    modified_at: "2025-10-15T08:00:00"
+  - path: "C:\\Users\\demo\\Downloads\\taxes_2026.xlsx"
+    kind: file
+    size_bytes: 22018
+    modified_at: "2026-03-30T17:20:00"
+  - path: "C:\\Users\\demo\\Downloads\\Archive\\old_notes.zip"
+    kind: file
+    size_bytes: 91990
+    modified_at: "2025-09-01T12:00:00"
+
+inspection_hints:
+  list_files:
+    - "C:\\Users\\demo\\Downloads\\current_resume.docx"
+    - "C:\\Users\\demo\\Downloads\\setup.log"
+    - "C:\\Users\\demo\\Downloads\\old_notes.zip"
+    - "C:\\Users\\demo\\Downloads\\taxes_2026.xlsx"
+    - "C:\\Users\\demo\\Downloads\\Archive\\old_notes.zip"
+  summarize_directory:
+    "C:\\Users\\demo\\Downloads":
+      file_count: 4
+      subdirectories:
+        - "Archive"
+      note: "Two files are older than 90 days relative to 2026-04-25."
+  detect_conflicts:
+    archive_destination: "C:\\Users\\demo\\Downloads\\Archive"
+    conflicting_destination_paths:
+      - "C:\\Users\\demo\\Downloads\\Archive\\old_notes.zip"
+    non_conflicting_old_files:
+      - "C:\\Users\\demo\\Downloads\\setup.log"

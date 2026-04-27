@@ -8,6 +8,7 @@ venv/
 .vscode/
 .DS_Store
 *.log
+!fixtures/**
 output.json
 scratch/
 temp/
@@ -15,6 +16,8 @@ codex/
 internal_document/
 runs/
 t1_llm_judge_matrix_*.json
+/run_t1_llm_judge_matrix.py
+/t1_pilot_*.yaml
 code_source/
 .claude/
 data/t1_tasks/test_ground/
