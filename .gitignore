@@ -18,6 +18,7 @@ runs/
 t1_llm_judge_matrix_*.json
 /run_t1_llm_judge_matrix.py
 /t1_pilot_*.yaml
+/fixtures/t1_workspaces/
 code_source/
 .claude/
 data/t1_tasks/test_ground/

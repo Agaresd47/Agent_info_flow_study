@@ -39,6 +39,10 @@ T1_CLI_TEST_CONDITIONS = {
     "A1_guardrailed",
 }
 T1_SLICES = {"read_only", "cli_test"}
+T1_SMOKE_TASK_RELATIVE_PATHS = (
+    Path("t1_tasks") / "test_ground" / "t1_smoke_cleanup_archive.yaml",
+    Path("t1_tasks") / "test_ground" / "old" / "t1_smoke_cleanup_archive.yaml",
+)
 
 
 def load_yaml(path: Path) -> Dict[str, Any]:
@@ -162,7 +166,13 @@ def validate_t1_condition(condition: str, t1_slice: str) -> None:
 
 def select_tasks(mode: str, data_dir: Path, t1_slice: str = "all") -> List[Path]:
     if mode == "smoke":
-        candidates = [data_dir / "t1_tasks" / "test_ground" / "t1_smoke_cleanup_archive.yaml"]
+        candidates = [data_dir / relative_path for relative_path in T1_SMOKE_TASK_RELATIVE_PATHS]
+        existing = [path for path in candidates if path.exists()]
+        if not existing:
+            raise FileNotFoundError(
+                "No smoke T1 task found. Checked: {0}".format(", ".join(str(path) for path in candidates))
+            )
+        candidates = [existing[0]]
     else:
         candidates = sorted((data_dir / "t1_tasks").glob("*.yaml"))
     if t1_slice == "all":
@@ -695,6 +705,7 @@ def make_planner_spec_v2(episode: Dict[str, Any], review_v1: Dict[str, Any]) -> 
 
 
 def write_t1_outputs(record: Dict[str, Any], raw_dir: Path, scored_dir: Path) -> Dict[str, str]:
+    judge_contract = validate_t1_judge_contract(record)
     raw_yaml_path = raw_dir / "{0}.yaml".format(record["run_id"])
     raw_json_path = raw_dir / "{0}.json".format(record["run_id"])
     trace_dir = raw_dir.parent / "traces"
@@ -736,6 +747,7 @@ def write_t1_outputs(record: Dict[str, Any], raw_dir: Path, scored_dir: Path) ->
             "provider_warnings": record.get("provider_warnings", []),
             "final_verdict": record["auto_eval"]["final_verdict"],
             "rubric_eval": record["rubric_eval"],
+            "judge_contract": judge_contract,
             "error_taxonomy_primary": record["error_taxonomy_primary"],
             "actual_first_action": record.get("actual_first_action"),
             "preferred_first_action": record.get("preferred_first_action"),
@@ -746,6 +758,43 @@ def write_t1_outputs(record: Dict[str, Any], raw_dir: Path, scored_dir: Path) ->
         },
     )
     return artifact_refs
+
+
+def validate_t1_judge_contract(record: Dict[str, Any]) -> Dict[str, Any]:
+    judge_inputs = record.get("judge_inputs")
+    judge_outputs = record.get("judge_outputs")
+    if not isinstance(judge_inputs, dict) or not judge_inputs:
+        raise ValueError("T1 record is missing structured judge_inputs")
+    if not isinstance(judge_outputs, dict) or not judge_outputs:
+        raise ValueError("T1 record is missing structured judge_outputs")
+
+    judge_mode = str(judge_inputs.get("judge_mode") or "").strip()
+    judge_status = str(judge_outputs.get("judge_status") or "").strip()
+    if not judge_mode:
+        raise ValueError("T1 judge_inputs must include judge_mode")
+    if not judge_status:
+        raise ValueError("T1 judge_outputs must include judge_status")
+    if judge_inputs.get("task_id") != record.get("task_id"):
+        raise ValueError("T1 judge_inputs.task_id must match record.task_id")
+
+    record_verdict = (
+        record.get("auto_eval", {}).get("final_verdict")
+        if isinstance(record.get("auto_eval"), dict)
+        else None
+    )
+    judge_verdict = judge_outputs.get("final_verdict")
+    if judge_verdict is not None and record_verdict is not None and judge_verdict != record_verdict:
+        raise ValueError("T1 judge_outputs.final_verdict must match auto_eval.final_verdict")
+
+    return {
+        "judge_mode": judge_mode,
+        "judge_status": judge_status,
+        "judge_task_id": str(judge_inputs.get("task_id")),
+        "judge_slice": str(judge_inputs.get("slice") or record.get("t1_slice") or record.get("eval_slice") or ""),
+        "final_verdict": judge_verdict or record_verdict,
+        "execution_attempted": bool(judge_outputs.get("execution_attempted", False)),
+        "workspace_scope_violation": bool(judge_outputs.get("workspace_scope_violation", False)),
+    }
 
 
 def write_t2_outputs(record: Dict[str, Any], raw_dir: Path, scored_dir: Path) -> None:
@@ -789,6 +838,7 @@ async def run(args: argparse.Namespace) -> Dict[str, Any]:
         slot_model = registry.get(args.slot_model) if args.slot_model else model
         for task_path in select_tasks(args.mode, data_dir, t1_slice=t1_slice):
             record = build_t1_run(load_yaml(task_path), model, args.condition, args.seed, args.provider_mode, slot_model)
+            judge_contract = validate_t1_judge_contract(record)
             artifact_refs = write_t1_outputs(record, raw_dir, scored_dir)
             summary["runs"].append(
                 {
@@ -800,6 +850,7 @@ async def run(args: argparse.Namespace) -> Dict[str, Any]:
                     "requested_model_id": record.get("requested_model_id"),
                     "warnings": record.get("provider_warnings", []),
                     "verdict": record["auto_eval"]["final_verdict"],
+                    "judge_contract": judge_contract,
                     "artifact_refs": artifact_refs,
                 }
             )

@@ -2,7 +2,6 @@ import fnmatch
 import os
 import shlex
 import shutil
-import subprocess
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -245,6 +244,16 @@ class ReadOnlyToolExecutor(WorkspaceToolExecutor):
 
 class CliToolExecutor(ReadOnlyToolExecutor):
     DEFAULT_ALLOWED_COMMANDS = ("cat", "cp", "ln", "ls", "mkdir", "mv", "pwd", "touch")
+    DEFAULT_ALLOWED_OPTIONS = {
+        "cat": frozenset(),
+        "cp": frozenset({"-r", "-R", "--recursive"}),
+        "ln": frozenset({"-s", "--symbolic"}),
+        "ls": frozenset(),
+        "mkdir": frozenset({"-p", "--parents"}),
+        "mv": frozenset(),
+        "pwd": frozenset(),
+        "touch": frozenset(),
+    }
     SHELL_META_TOKENS = ("&&", "||", "|", ";", ">", "<", "`", "$(")
     WRITE_COMMANDS = {"cp", "ln", "mkdir", "mv", "touch"}
 
@@ -266,10 +275,15 @@ class CliToolExecutor(ReadOnlyToolExecutor):
                 or self.DEFAULT_ALLOWED_COMMANDS
             )
         }
+        runtime_options = runtime.get("allowed_options") if isinstance(runtime, dict) else None
+        self.allowed_options = self._normalize_allowed_options(runtime_options)
         timeout_value = default_timeout_seconds
         if timeout_value is None and isinstance(runtime, dict):
             timeout_value = runtime.get("default_timeout_seconds")
         self.default_timeout_seconds = float(timeout_value or 15.0)
+        self.builtin_only = bool(runtime.get("builtin_only", True)) if isinstance(runtime, dict) else True
+        max_output_chars = runtime.get("max_output_chars") if isinstance(runtime, dict) else None
+        self.max_output_chars = max(1, int(max_output_chars or 4000))
         self._execution_events: List[Dict[str, Any]] = []
         self._execution_results: List[Dict[str, Any]] = []
         self._event_counter = 0
@@ -294,6 +308,7 @@ class CliToolExecutor(ReadOnlyToolExecutor):
         plan = self._build_command_plan(argv, cwd_path)
         self._record_event(
             "command_started",
+            command_id=plan["command_id"],
             raw_command=plan["raw_argv"],
             mapped_command=plan["mapped_argv"],
             cwd=self._relative_path(cwd_path),
@@ -302,50 +317,13 @@ class CliToolExecutor(ReadOnlyToolExecutor):
         )
         started_at = time.monotonic()
         timeout_value = float(timeout_seconds or self.default_timeout_seconds)
-        try:
-            completed = subprocess.run(
-                plan["mapped_argv"],
-                cwd=str(cwd_path),
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                timeout=timeout_value,
-                env=self._build_command_env(env),
-                check=False,
-            )
-        except FileNotFoundError as exc:
-            completed = self._execute_builtin_command(plan["executable"], plan["mapped_argv"], cwd_path)
-            if completed is None:
-                self._record_event(
-                    "command_rejected",
-                    raw_command=plan["raw_argv"],
-                    mapped_command=plan["mapped_argv"],
-                    cwd=self._relative_path(cwd_path),
-                    reason="command_not_available",
-                )
-                raise ValueError(str(exc)) from exc
-        except subprocess.TimeoutExpired as exc:
-            duration_ms = int((time.monotonic() - started_at) * 1000)
-            result = {
-                "status": "timeout",
-                "command": plan["raw_argv"],
-                "mapped_command": plan["mapped_argv"],
-                "cwd": self._relative_path(cwd_path),
-                "exit_code": None,
-                "stdout": exc.stdout or "",
-                "stderr": exc.stderr or "",
-                "timed_out": True,
-                "duration_ms": duration_ms,
-                "writes_attempted": plan["writes_attempted"],
-                "write_paths": plan["write_paths"],
-                "writes_outside_fixture_root": 0,
-                "backend": "subprocess",
-            }
-            self._execution_results.append(result)
-            self._record_event("command_timed_out", **result)
-            return result
+        del timeout_value, env
+        completed = self._execute_builtin_command(plan["executable"], plan["mapped_argv"], cwd_path)
+        if completed is None:
+            raise ValueError(f"builtin handler is not available for command: {plan['executable']}")
         duration_ms = int((time.monotonic() - started_at) * 1000)
         result = {
+            "command_id": plan["command_id"],
             "status": "completed",
             "command": plan["raw_argv"],
             "mapped_command": plan["mapped_argv"],
@@ -358,19 +336,15 @@ class CliToolExecutor(ReadOnlyToolExecutor):
             "writes_attempted": plan["writes_attempted"],
             "write_paths": plan["write_paths"],
             "writes_outside_fixture_root": 0,
-            "backend": completed.get("backend", "subprocess") if isinstance(completed, dict) else "subprocess",
+            "backend": completed.get("backend", "builtin") if isinstance(completed, dict) else "builtin",
+            "error": None,
         }
-        if isinstance(completed, subprocess.CompletedProcess):
-            result["exit_code"] = completed.returncode
-            result["stdout"] = completed.stdout
-            result["stderr"] = completed.stderr
-            result["backend"] = "subprocess"
-        else:
-            result["exit_code"] = int(completed["returncode"])
-            result["stdout"] = str(completed.get("stdout", ""))
-            result["stderr"] = str(completed.get("stderr", ""))
+        result["exit_code"] = int(completed["returncode"])
+        result["stdout"] = str(completed.get("stdout", ""))
+        result["stderr"] = str(completed.get("stderr", ""))
+        self._apply_output_limits(result)
         self._execution_results.append(result)
-        self._record_event("command_completed", **result)
+        self._record_event("command_completed", **dict(result))
         return result
 
     def get_execution_events(self) -> List[Dict[str, Any]]:
@@ -379,6 +353,9 @@ class CliToolExecutor(ReadOnlyToolExecutor):
     def get_execution_summary(self) -> Dict[str, Any]:
         return {
             "commands_run": len(self._execution_results),
+            "completed_commands": sum(1 for result in self._execution_results if result["status"] == "completed"),
+            "rejected_commands": sum(1 for result in self._execution_results if result["status"] == "rejected"),
+            "timed_out_commands": sum(1 for result in self._execution_results if result["status"] == "timeout"),
             "writes_attempted": sum(int(result["writes_attempted"]) for result in self._execution_results),
             "writes_outside_fixture_root": sum(
                 int(result["writes_outside_fixture_root"]) for result in self._execution_results
@@ -392,16 +369,23 @@ class CliToolExecutor(ReadOnlyToolExecutor):
         }
 
     def _tool_run_cli_command(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
-        result = self.execute_cli_command(
-            arguments["command"],
-            cwd=str(arguments.get("cwd") or "."),
-            timeout_seconds=(
-                float(arguments["timeout_seconds"])
-                if "timeout_seconds" in arguments and arguments["timeout_seconds"] is not None
-                else None
-            ),
-            env=arguments.get("env"),
-        )
+        if "command" not in arguments:
+            raise ValueError("command is required")
+        try:
+            result = self.execute_cli_command(
+                arguments["command"],
+                cwd=str(arguments.get("cwd") or "."),
+                timeout_seconds=(
+                    float(arguments["timeout_seconds"])
+                    if "timeout_seconds" in arguments and arguments["timeout_seconds"] is not None
+                    else None
+                ),
+                env=arguments.get("env"),
+            )
+        except (ValueError, OSError) as exc:
+            command_value = arguments["command"]
+            cwd_value = str(arguments.get("cwd") or ".")
+            result = self._build_rejected_result(command_value, cwd_value, exc)
         return {
             **result,
             "execution_summary": self.get_execution_summary(),
@@ -425,6 +409,7 @@ class CliToolExecutor(ReadOnlyToolExecutor):
         executable = Path(argv[0]).name.lower()
         if executable not in self.allowed_commands:
             raise ValueError(f"command is not allowed: {argv[0]}")
+        self._validate_command_options(executable, argv)
         mapped_argv = list(argv)
         path_positions = self._path_positions_for_command(executable, argv)
         write_positions = self._write_positions_for_command(executable, path_positions)
@@ -440,6 +425,7 @@ class CliToolExecutor(ReadOnlyToolExecutor):
             if position in write_positions:
                 write_paths.append(self._relative_path(resolved))
         return {
+            "command_id": self._next_command_id(),
             "raw_argv": list(argv),
             "mapped_argv": mapped_argv,
             "executable": executable,
@@ -595,6 +581,90 @@ class CliToolExecutor(ReadOnlyToolExecutor):
     def _builtin_non_option_args(self, mapped_argv: List[str]) -> List[str]:
         positions = self._non_option_positions(mapped_argv)
         return [mapped_argv[position] for position in positions]
+
+    def _normalize_allowed_options(self, raw_options: Any) -> Dict[str, frozenset[str]]:
+        normalized = {
+            command: frozenset(options)
+            for command, options in self.DEFAULT_ALLOWED_OPTIONS.items()
+        }
+        if not isinstance(raw_options, dict):
+            return normalized
+        for command, options in raw_options.items():
+            if isinstance(options, list):
+                normalized[str(command).lower()] = frozenset(str(option) for option in options)
+        return normalized
+
+    def _validate_command_options(self, executable: str, argv: List[str]) -> None:
+        allowed = self.allowed_options.get(executable, frozenset())
+        literal_mode = False
+        for argument in argv[1:]:
+            if literal_mode:
+                continue
+            if argument == "--":
+                literal_mode = True
+                continue
+            if argument.startswith("-") and argument != "-":
+                if argument not in allowed:
+                    raise ValueError(f"unsupported option for {executable}: {argument}")
+
+    def _next_command_id(self) -> str:
+        return f"cmd-{len(self._execution_results) + 1}"
+
+    def _apply_output_limits(self, result: Dict[str, Any]) -> None:
+        stdout, stdout_truncated = self._truncate_output(str(result.get("stdout", "")))
+        stderr, stderr_truncated = self._truncate_output(str(result.get("stderr", "")))
+        result["stdout"] = stdout
+        result["stderr"] = stderr
+        result["stdout_truncated"] = stdout_truncated
+        result["stderr_truncated"] = stderr_truncated
+
+    def _truncate_output(self, value: str) -> tuple[str, bool]:
+        if len(value) <= self.max_output_chars:
+            return value, False
+        return value[: self.max_output_chars], True
+
+    def _build_rejected_result(self, command: str | List[str], cwd: str, exc: Exception) -> Dict[str, Any]:
+        raw_command = self._coerce_command_repr(command)
+        result = {
+            "command_id": self._next_command_id(),
+            "status": "rejected",
+            "command": raw_command,
+            "mapped_command": None,
+            "cwd": cwd,
+            "exit_code": None,
+            "stdout": "",
+            "stderr": "",
+            "stdout_truncated": False,
+            "stderr_truncated": False,
+            "timed_out": False,
+            "duration_ms": 0,
+            "writes_attempted": 0,
+            "write_paths": [],
+            "writes_outside_fixture_root": 0,
+            "backend": "builtin" if self.builtin_only else "subprocess",
+            "error": {
+                "code": "command_rejected",
+                "message": str(exc),
+            },
+        }
+        self._execution_results.append(result)
+        self._record_event(
+            "command_rejected",
+            command_id=result["command_id"],
+            raw_command=result["command"],
+            mapped_command=None,
+            cwd=cwd,
+            error=result["error"],
+        )
+        return result
+
+    def _coerce_command_repr(self, command: str | List[str]) -> List[str]:
+        if isinstance(command, str):
+            stripped = command.strip()
+            return [stripped] if stripped else []
+        if isinstance(command, list) and all(isinstance(item, str) for item in command):
+            return list(command)
+        return [str(command)]
 
     def _record_event(self, event_type: str, **payload: Any) -> None:
         self._event_counter += 1

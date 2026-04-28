@@ -462,11 +462,6 @@ def _build_response_bundle(
         "assumptions_made": [],
         "final_response": final_answer,
         "judge_inputs": _build_judge_inputs_from_state(task, trace, final_answer, state),
-        "judge_outputs": {
-            "judge_status": "not_called",
-            "execution_attempted": bool(state["cli_execution_log"]),
-            "workspace_scope_violation": bool(state["workspace_scope_violation_signal"]),
-        },
         "cli_execution_log": list(state["cli_execution_log"]),
         "workspace_scope_violation_signal": bool(state["workspace_scope_violation_signal"]),
         "tool_policy_decisions": list(state["tool_policy_decisions"]),
@@ -1016,10 +1011,23 @@ def _build_judge_inputs_from_state(
     state: Dict[str, Any],
 ) -> Dict[str, Any]:
     return {
+        "contract_version": "t1_judge_v1",
         "task_id": task["task_id"],
         "slice": state.get("eval_slice"),
+        "matrix_key": task.get("locked_condition_metadata", {}).get("matrix_key", ""),
+        "spec_level": task.get("locked_condition_metadata", {}).get("spec_level", ""),
         "trace_event_count": len(trace),
         "final_answer": final_answer,
+        "final_response": final_answer,
+        "clarification_questions": [
+            str(item.get("content") or "")
+            for item in trace
+            if item.get("actor") == "assistant" and item.get("action_type") == "user_question"
+        ],
+        "answered_slot_names": sorted(state.get("answered_slots", {}).keys()),
         "cli_attempted": bool(state.get("cli_execution_log")),
+        "cli_execution_log": list(state.get("cli_execution_log", [])),
+        "tool_policy_decisions": list(state.get("tool_policy_decisions", [])),
+        "workspace_scope_violation": bool(state.get("workspace_scope_violation_signal")),
         "judge_mode": task.get("locked_condition_metadata", {}).get("judge_mode", "deterministic_placeholder"),
     }

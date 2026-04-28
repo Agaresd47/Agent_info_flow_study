@@ -89,5 +89,78 @@ class ReadOnlyToolExecutorTests(unittest.TestCase):
         self.assertEqual(unknown["error"]["code"], "unknown_tool")
 
 
+class CliToolExecutorTests(unittest.TestCase):
+    def tearDown(self) -> None:
+        workspace = getattr(self, "workspace", None)
+        if workspace and workspace.get("cleanup"):
+            workspace["cleanup"]()
+
+    def test_run_cli_command_returns_stable_completed_shape(self) -> None:
+        self.workspace = t1_playground.materialize_workspace(
+            {"workspace_fixture": "fixtures/t1_descriptor.json"}
+        )
+        self.assertTrue(self.workspace["ok"])
+        executor = t1_tools.CliToolExecutor(self.workspace)
+
+        result = executor.run_tool("run_cli_command", {"command": ["cat", "alpha/report.txt"]})
+
+        self.assertTrue(result["ok"])
+        payload = result["result"]
+        self.assertEqual(payload["status"], "completed")
+        self.assertEqual(payload["command_id"], "cmd-1")
+        self.assertEqual(payload["backend"], "builtin")
+        self.assertEqual(payload["exit_code"], 0)
+        self.assertFalse(payload["stdout_truncated"])
+        self.assertFalse(payload["stderr_truncated"])
+        self.assertIsNone(payload["error"])
+        self.assertEqual(payload["execution_summary"]["commands_run"], 1)
+        self.assertEqual(payload["execution_summary"]["completed_commands"], 1)
+        self.assertEqual(payload["execution_summary"]["rejected_commands"], 0)
+        self.assertEqual(payload["execution_summary"]["exit_codes"], [0])
+
+    def test_run_cli_command_rejects_unsupported_flags_as_structured_result(self) -> None:
+        self.workspace = t1_playground.materialize_workspace(
+            {"workspace_fixture": "fixtures/t1_descriptor.json"}
+        )
+        self.assertTrue(self.workspace["ok"])
+        executor = t1_tools.CliToolExecutor(self.workspace)
+
+        result = executor.run_tool("run_cli_command", {"command": ["ls", "-l", "."]})
+
+        self.assertTrue(result["ok"])
+        payload = result["result"]
+        self.assertEqual(payload["status"], "rejected")
+        self.assertEqual(payload["command_id"], "cmd-1")
+        self.assertEqual(payload["error"]["code"], "command_rejected")
+        self.assertIn("unsupported option", payload["error"]["message"])
+        self.assertEqual(payload["execution_summary"]["commands_run"], 1)
+        self.assertEqual(payload["execution_summary"]["completed_commands"], 0)
+        self.assertEqual(payload["execution_summary"]["rejected_commands"], 1)
+        self.assertEqual(payload["execution_summary"]["exit_codes"], [])
+
+    def test_run_cli_command_bounds_output(self) -> None:
+        self.workspace = t1_playground.materialize_workspace(
+            {
+                "workspace_fixture": {
+                    "fixture_id": "big_output",
+                    "files": {
+                        "alpha/large.txt": "x" * 5000,
+                    },
+                }
+            }
+        )
+        self.assertTrue(self.workspace["ok"])
+        executor = t1_tools.CliToolExecutor(self.workspace)
+
+        result = executor.run_tool("run_cli_command", {"command": ["cat", "alpha/large.txt"]})
+
+        self.assertTrue(result["ok"])
+        payload = result["result"]
+        self.assertEqual(payload["status"], "completed")
+        self.assertTrue(payload["stdout_truncated"])
+        self.assertEqual(len(payload["stdout"]), self.workspace["cli_runtime"]["max_output_chars"])
+        self.assertFalse(payload["stderr_truncated"])
+
+
 if __name__ == "__main__":
     unittest.main()

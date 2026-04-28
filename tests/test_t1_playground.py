@@ -76,6 +76,18 @@ class MaterializeWorkspaceTests(unittest.TestCase):
         self.assertEqual((root / "logs" / "latest.txt").read_text(encoding="utf-8"), "done")
         workspace["cleanup"]()
 
+    def test_materialize_exposes_bounded_cli_runtime_contract(self) -> None:
+        workspace = t1_playground.materialize_workspace(
+            {"workspace_fixture": "fixtures/t1_descriptor.json"}
+        )
+        self.assertTrue(workspace["ok"])
+        runtime = workspace["cli_runtime"]
+        self.assertTrue(runtime["builtin_only"])
+        self.assertEqual(runtime["max_output_chars"], 4000)
+        self.assertEqual(runtime["shell_mode"], "argv_only")
+        self.assertEqual(runtime["allowed_options"]["mkdir"], ["-p", "--parents"])
+        workspace["cleanup"]()
+
 
 if __name__ == "__main__":
     unittest.main()
