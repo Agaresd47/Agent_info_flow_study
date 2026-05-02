@@ -1,0 +1,15 @@
+# Minimal config example for the read_only matrix runner.
+tasks:
+  - scripts/task/task1/examples/example_read_only_task.yaml
+
+runners:
+  - label: haiku_4_5
+    provider: bedrock
+    model_id: us.anthropic.claude-haiku-4-5-20251001-v1:0
+
+judge_model: gpt-5.4-mini
+condition: A0_interactive
+runner_visibility: benchmark
+fail_on_leak: true
+max_runner_tokens: 1200
+max_judge_tokens: 1800

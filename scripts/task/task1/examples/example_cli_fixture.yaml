@@ -1,0 +1,19 @@
+fixture_id: fixtures_t1_example_cli_pair_promote
+workspace_root: /workspace/project_alpha
+
+tree:
+  /workspace/project_alpha:
+    dirs:
+      - incoming
+      - ready
+    files: {}
+
+  /workspace/project_alpha/incoming:
+    dirs: []
+    files:
+      caseA.txt: "source payload"
+      caseB.txt: "partial source"
+
+  /workspace/project_alpha/ready:
+    dirs: []
+    files: {}

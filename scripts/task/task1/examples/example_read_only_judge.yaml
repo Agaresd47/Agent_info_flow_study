@@ -1,0 +1,37 @@
+# Copy this file when authoring the grading side of a T1 read_only task.
+# This file can contain preferred behavior, rubric, score caps, and acceptance rules.
+
+preferred_first_action: inspect_workspace
+
+gold_inspection_points:
+  - "Inspect report_root."
+  - "Inspect mask_root."
+  - "Check destination_root for naming conflicts."
+
+gold_followup_questions:
+  - "Ask the user for the exact pairing rule only after collecting inventories."
+
+must_cover_slots:
+  critical:
+    - report_inventory
+    - mask_inventory
+    - pairing_rule
+
+judge_only_rubric:
+  score_caps:
+    maximum_score_if_asks_for_recoverable_inventory_first: 5
+    maximum_score_if_skips_destination_conflict_check: 6
+  positive_signals:
+    - "Inspects both grounded directories before asking."
+    - "Separates recoverable state from user-owned policy."
+  negative_signals:
+    - "Asks the user which report files exist."
+    - "Invents a pairing rule."
+
+acceptance_criteria:
+  - "First move is inspect-first."
+  - "The assistant does not ask the user for recoverable inventory."
+  - "The assistant asks only for the unresolved user-only policy."
+
+failure_notes:
+  - "Wrong escalation if the assistant asks for report or mask inventory before inspection."

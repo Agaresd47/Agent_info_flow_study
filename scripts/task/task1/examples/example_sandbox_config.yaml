@@ -1,0 +1,12 @@
+# Minimal config example for the cli_test sandbox runner.
+defaults:
+  task_paths:
+    - scripts/task/task1/examples/example_cli_task.yaml
+  output_dir: temp/sandbox_v1/results
+  max_turns: 12
+  bash_candidates:
+    - C:\Program Files\Git\bin\bash.exe
+
+runners:
+  - label: haiku_4_5
+    model_id: us.anthropic.claude-haiku-4-5-20251001-v1:0

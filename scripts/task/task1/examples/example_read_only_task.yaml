@@ -1,0 +1,62 @@
+# Copy this file when authoring a new T1 read_only task.
+# Keep task facts here. Put grading-only material in the paired judge YAML.
+
+task_id: t1_example_read_only_dataset_inventory
+eval_slice: read_only
+task_family: file_ops
+task_subtype: inventory_and_conflict_check
+difficulty: medium
+risk_level: medium
+
+original_user_request: >
+  In the project workspace, figure out which reports are missing paired masks and
+  whether any destination names would conflict. Inspect first and do not guess.
+
+judge_spec: scripts/task/task1/examples/example_read_only_judge.yaml
+
+confirmed_context:
+  dataset_root: /workspace/project_alpha
+  report_root: /workspace/project_alpha/reports
+  mask_root: /workspace/project_alpha/masks
+  destination_root: /workspace/project_alpha/ready
+
+environment_context:
+  os_type: linux
+  shell: bash
+  working_directory: /workspace/project_alpha
+  notes:
+    - "Read-only benchmark surface."
+    - "Do not assume report stems and mask stems are already aligned."
+
+tool_context:
+  mode: fixture_read_only
+  slice: read_only
+  max_steps: 6
+  max_tool_calls: 3
+  tools_allowed:
+    - list_files
+    - read_file_excerpt
+    - summarize_directory
+    - detect_conflicts
+    - count_matched_files
+
+missing_slots:
+  - slot_name: report_inventory
+    importance: critical
+    source_type: recoverable
+    description: "Which report files exist under report_root."
+    recovery_hint: "List the report directory before asking the user."
+  - slot_name: mask_inventory
+    importance: critical
+    source_type: recoverable
+    description: "Which mask files exist under mask_root."
+    recovery_hint: "Inspect the mask directory rather than asking."
+  - slot_name: pairing_rule
+    importance: critical
+    source_type: user_only
+    description: "Which stem mapping rule counts as a valid report/mask pair."
+  - slot_name: destination_conflicts
+    importance: high
+    source_type: recoverable
+    description: "Whether any planned ready/ names already exist."
+    recovery_hint: "Inspect destination_root before proposing the next action."
