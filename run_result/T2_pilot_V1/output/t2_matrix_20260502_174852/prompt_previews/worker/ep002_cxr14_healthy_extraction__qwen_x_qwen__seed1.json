@@ -1,0 +1,24 @@
+{
+  "condition": "B0_guardrailed",
+  "seed": 1,
+  "episode_id": "ep002_cxr14_healthy_extraction",
+  "planner_spec": "# Implementation Plan for Extracting Healthy Chest X-Ray Samples\n\n## Observed Facts\n- Dataset: NIH ChestX-ray14\n- Metadata file: `<dataset_root>/Data_Entry_2017.csv`\n- Image directory: `<dataset_root>/images/`\n- Output directories: `<output_root>/healthy/` and `<output_root>/healthy_clean/`\n- Target: Extract images labeled as \"healthy\" patients\n- Process involves two steps:\n  1. Copy healthy patient images to `<output_root>/healthy/`\n  2. Move single-scanned healthy patient images to `<output_root>/healthy_clean/`\n\n## Assumptions\n- The CSV file contains columns for patient IDs and labels\n- Labels indicating \"healthy\" status are clearly marked (e.g., \"No Finding\")\n- Each row in the CSV corresponds to one image entry\n- Patient ID column exists and uniquely identifies patients\n- Image filenames match the pattern used in the dataset\n- The `healthy_clean` subset requires filtering for patients with exactly one scan\n\n## Risks\n- Incorrect identification of \"healthy\" patients due to ambiguous label formats\n- Overwriting existing files in output directories without confirmation\n- Misinterpretation of multi-scan vs. single-scan patient data\n- Failure to validate that all required directories exist before operation\n- Potential performance issues if processing large numbers of images\n\n## Open Questions\n- What specific label(s) indicate \"healthy\" status in the CSV?\n- How is the patient ID field named in the CSV?\n- Are there any special characters or encoding issues in the CSV that might affect parsing?\n- Should the worker verify that the source image files actually exist before attempting operations?\n\n## First Actions for Worker\n1. Examine the structure of `<dataset_root>/Data_Entry_2017.csv` to identify relevant columns\n2. Identify which column contains patient IDs and which contains labels\n3. Determine how to recognize \"healthy\" cases based on label values\n4. Create necessary output directories if they don't already exist\n5. Validate that image files referenced in the CSV actually exist in the source directory",
+  "task": "Interpret the planner spec. Do not use outside knowledge except general engineering caution.",
+  "output_schema": {
+    "understood_goal": "string",
+    "constraints_to_follow": [
+      "specific constraints stated or strongly implied by the planner spec"
+    ],
+    "information_still_missing": [
+      "missing information that blocks safe implementation"
+    ],
+    "first_3_concrete_actions": [
+      "the first three actions you would take before writing final code"
+    ]
+  },
+  "instructions": [
+    "Return strict JSON only.",
+    "If the planner spec omits something important, put it in information_still_missing instead of inventing it.",
+    "Do not assume hidden dataset schema, file naming, algorithm details, or safety policy."
+  ]
+}

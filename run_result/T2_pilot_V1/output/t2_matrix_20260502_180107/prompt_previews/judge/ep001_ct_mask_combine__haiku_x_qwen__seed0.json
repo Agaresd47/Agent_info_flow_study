@@ -1,0 +1,133 @@
+{
+  "episode_id": "ep001_ct_mask_combine",
+  "condition": "B0_guardrailed",
+  "seed": 0,
+  "pair_label": "haiku_x_qwen",
+  "planner_label": "haiku_4_5",
+  "worker_label": "qwen3_coder_30b",
+  "planner_visible_request": "我有一批病人 CT，每个病人在 <dataset_root>/ct/ 下有一个 <patient_id>.nii.gz，\n在 <dataset_root>/mask/<patient_id>_total/ 下有 TotalSeg 输出的若干结构 mask。\n\n请帮我对每个病人做：\n1. 把同一类的多个结构 mask 合成一个二值 mask（比如所有 rib_left_* 和 rib_right_* 合成一个 rib mask）\n2. 用 CT 的强度填到 mask 区域，得到 \"real-intensity mask\"\n3. 把所有结构合在一起作为前景，剩下的体素当作软组织 CT 输出一份\n\n要支持中途崩溃后续跑。多机会跑很多病人，速度优先。\n这份 spec 里需要把几个实现类别说清楚：mask 合并到底采用什么数学语义、结构文件如何被选择、续跑完成状态如何判定、real-intensity 和软组织 CT 的背景/填充值如何处理。\n输出到 <output_root>/<patient_id>/ 下。\n",
+  "gold_task_goal": "对每个病人，按预定义的结构组（rib / lung / spine / heart / aorta / other_bones）\n正则匹配 TotalSeg 输出文件，每组合并为单个二值 mask（np.maximum 语义），\n并基于该 mask 抠出 real-intensity mask 和软组织 CT。\n支持续跑（基于 .processing_done flag）。\npatient-level 并行。\n",
+  "gold_constraints": [
+    "结构合并算子必须是 np.maximum，不是 np.add（避免重叠区域溢出）",
+    "续跑判定基于 <output_root>/<patient_id>/.processing_done 文件存在性",
+    "结构选择用正则模式（如 rib_(left|right)_\\d+\\.nii\\.gz），不能硬编码完整列表",
+    "affine 和 header 取自第一个被合并的 mask 文件",
+    "软组织 CT = CT 数据，把所有结构区域填为 padding_value（默认 5）",
+    "real-intensity mask 中非 mask 区域填 -999.9（不是 0）",
+    "并行粒度是 patient，单 patient 内串行",
+    "成功完成才写 .processing_done，部分完成不写"
+  ],
+  "gold_relevant_files": [
+    "<dataset_root>/ct/<patient_id>.nii.gz",
+    "<dataset_root>/mask/<patient_id>_total/",
+    "<output_root>/<patient_id>/.processing_done",
+    "<output_root>/<patient_id>/<patient_id>_<group>_mask.nii.gz",
+    "<output_root>/<patient_id>/<patient_id>_<group>_real.nii.gz",
+    "<output_root>/<patient_id>/<patient_id>_soft_tissue.nii.gz",
+    "<output_root>/processing_success.log"
+  ],
+  "judge_only_rubric": {
+    "critical_constraints_min_for_acceptable": 3,
+    "critical_constraints_min_for_strong": 5,
+    "score_caps": {
+      "max_spec_score_if_no_gold_constraint_captured": 3,
+      "max_spec_score_if_forbidden_assumption_introduced": 5,
+      "max_worker_score_if_missing_info_empty_under_weak_spec": 6
+    },
+    "positive_signals": [
+      "Planner states concrete constraints rather than delegating them vaguely.",
+      "Planner flags unresolved choices and unsafe/destructive operations.",
+      "Worker preserves the planner intent while identifying missing implementation details."
+    ],
+    "negative_signals": [
+      "Planner introduces a convenient but wrong default.",
+      "Worker treats an underspecified handoff as complete.",
+      "Worker first actions target files or schemas not grounded in the planner spec."
+    ]
+  },
+  "episode_gold_extras": {},
+  "expected_v1_pitfalls": [
+    "Omit or blur critical constraint: 结构合并算子必须是 np.maximum，不是 np.add（避免重叠区域溢出）",
+    "Omit or blur critical constraint: 续跑判定基于 <output_root>/<patient_id>/.processing_done 文件存在性",
+    "Omit or blur critical constraint: 结构选择用正则模式（如 rib_(left|right)_\\d+\\.nii\\.gz），不能硬编码完整列表"
+  ],
+  "decoys": [
+    "Worker may fill in a plausible implementation default that the planner did not actually specify.",
+    "Worker may treat a visible path or schema summary as complete when it is only partial."
+  ],
+  "forbidden_assumptions": [
+    "Do not infer hidden file naming, merge semantics, resume markers, or destructive write policy unless the planner spec states them."
+  ],
+  "planner_response_text": "# Implementation Spec: CT Mask Combine Worker\n\n## Overview\nProcess medical imaging data per patient: combine TotalSeg structure masks by category, fill with CT intensity values, and generate derived outputs. Support resumable multi-patient batch processing with speed priority.\n\n---\n\n## 1. Input Data Contract\n\n### CT Images\n- **Location**: `<dataset_root>/ct/<patient_id>.nii.gz`\n- **Format**: NIfTI compressed\n- **Assumption**: One file per patient; file exists and is readable\n\n### Mask Files\n- **Location**: `<dataset_root>/mask/<patient_id>_total/`\n- **Format**: Individual `.nii.gz` files, one per TotalSeg structure\n- **Naming**: Structure names embedded in filenames (exact pattern not specified)\n- **Assumption**: All masks are co-registered to the corresponding CT image\n\n---\n\n## 2. Mask Combination Logic\n\n### Mathematical Semantics (UNSPECIFIED)\nThe request mentions \"combining\" masks (e.g., `rib_left_*` + `rib_right_*` → single `rib` mask) but does not specify:\n- **Union vs. Intersection**: Should overlapping voxels be included (union) or only doubly-masked (intersection)?\n- **Priority/Ordering**: If structures overlap, which takes precedence?\n- **Output Value**: Binary (0/1) or preserve source labels?\n\n**Current assumption**: Binary union (any voxel masked in any source structure → 1 in combined mask).\n\n### Structure Grouping Rules (UNSPECIFIED)\n- **Grouping criteria**: How are individual structures mapped to categories (e.g., which files match `rib_left_*`)?\n- **Grouping list**: Is there a predefined taxonomy, or should it be inferred from filename patterns?\n- **Fallback**: What happens to structures that don't match any group?\n\n**Current assumption**: Grouping is deterministic and provided externally (not inferred here).\n\n---\n\n## 3. Real-Intensity Mask Generation\n\n### Definition (PARTIALLY SPECIFIED)\n- **Input**: Combined binary mask + original CT image\n- **Output**: 3D volume where masked voxels contain CT intensity, unmasked voxels contain a fill value\n- **Fill value for unmasked voxels**: Not specified (e.g., 0, -1024, NaN, or background CT value?)\n\n**Current assumption**: Unmasked voxels set to 0 (or specify as open question).\n\n---\n\n## 4. Soft-Tissue CT Output\n\n### Definition (PARTIALLY SPECIFIED)\n- **Input**: All structures combined as foreground + original CT\n- **Output**: CT image where foreground voxels are replaced with soft-tissue intensity, background preserved\n- **Soft-tissue intensity value**: Not specified (e.g., fixed HU value, mean of unmasked CT, or per-structure?)\n- **Background fill**: How are non-foreground voxels handled? (preserve original CT, set to 0, set to air HU?)\n\n**Current assumption**: Foreground voxels set to a fixed soft-tissue HU value (e.g., 40); background preserved from original CT.\n\n---\n\n## 5. Output Structure\n\n### Directory Layout\n```\n<output_root>/<patient_id>/\n  ├── <category_1>_mask.nii.gz          (binary combined mask)\n  ├── <category_1>_real_intensity.nii.gz (intensity-filled mask)\n  ├── <category_2>_mask.nii.gz\n  ├── <category_2>_real_intensity.nii.gz\n  ├── ...\n  ├── foreground_mask.nii.gz             (union of all structures)\n  ├── soft_tissue_ct.nii.gz              (CT with foreground replaced)\n  └── completion_marker.txt              (or equivalent)\n```\n\n**Assumption**: One output file per category + two aggregate outputs.\n\n---\n\n## 6. Resumability & Completion Tracking\n\n### Completion Marker (UNSPECIFIED)\n- **Format**: How is \"patient successfully processed\" recorded? (e.g., sentinel file, JSON metadata, database entry?)\n- **Location**: In `<output_root>/<patient_id>/` or elsewhere?\n- **Atomicity**: Should marker be written only after all outputs are valid?\n\n**Current assumption**: Completion marker is a file (e.g., `.done` or `completion_marker.txt`) written last, after all outputs.\n\n### Resume Logic (UNSPECIFIED)\n- **Partial state**: If some outputs exist but marker is absent, should they be recomputed or reused?\n- **Overwrite policy**: If outputs exist and marker exists, skip patient or recompute?\n\n**Current assumption**: Check for completion marker; if present, skip. If absent, recompute all outputs for that patient.\n\n---\n\n## 7. Constraints & Safety\n\n### Write Safety\n- **Destructive writes**: Outputs may overwrite existing files; no backup specified.\n- **Partial failure**: If processing fails mid-patient, incomplete outputs remain; resumability depends on marker logic.\n\n### Performance\n- **Speed priority**: Implies parallel processing across patients; no concurrency model specified (threading, multiprocessing, distributed).\n- **Memory**: No constraints on CT/mask size; assume in-memory processing.\n\n### Data Integrity\n- **Mask-CT alignment**: Assumes masks and CT share identical spatial dimensions and affine; no validation specified.\n- **Missing structures**: If a structure file is missing, should processing fail or skip that structure?\n\n---\n\n## 8. First Actions for Worker\n\n1. **Validate inputs**: Confirm CT file exists and is readable; list all mask files in `<patient_id>_total/`.\n2. **Load structure grouping rules**: Obtain or infer the mapping from individual structure names to categories.\n3. **Load CT and masks**: Read NIfTI files; verify spatial alignment.\n4. **Check completion marker**: If present, skip patient; otherwise, proceed.\n5. **Combine masks by category**: Apply union logic per group; output binary masks.\n6. **Generate real-intensity masks**: Fill masked voxels with CT intensity; unmasked voxels with fill value.\n7. **Generate soft-tissue CT**: Replace foreground with soft-tissue HU; preserve background.\n8. **Write all outputs**: Save to `<output_root>/<patient_id>/`.\n9. **Write completion marker**: Final step; signals successful processing.\n\n---\n\n## 9. Open Questions\n\nSee JSON block below.\n\n---\n\n```json\n{\n  \"assumptions\": [\n    \"One CT file per patient in <dataset_root>/ct/<patient_id>.nii.gz\",\n    \"All masks for a patient are in <dataset_root>/mask/<patient_id>_total/ and are co-registered to the CT\",\n    \"Mask combination uses binary union (any voxel masked in any source structure → 1)\",\n    \"Unmasked voxels in real-intensity mask are set to 0\",\n    \"Soft-tissue CT uses a fixed HU value (e.g., 40) for foreground; background preserved from original CT\",\n    \"Completion is tracked via a sentinel file in <output_root>/<patient_id>/\",\n    \"If completion marker exists, patient is skipped; otherwise, all outputs are recomputed\",\n    \"Processing is per-patient; no cross-patient dependencies\"\n  ],\n  \"risks\": [\n    \"Mask-CT spatial mismatch: no validation that masks and CT share dimensions/affine; misalignment will produce incorrect outputs\",\n    \"Partial failure: incomplete outputs remain on disk if processing crashes; resumability depends entirely on marker logic\",\n    \"Missing structure files: behavior undefined if a structure file is missing; could fail silently or crash\",\n    \"Overwrite policy: existing outputs are overwritten without backup; no rollback mechanism\",\n    \"Memory: no constraints on CT/mask size; large datasets may exhaust memory\",\n    \"Concurrency: no model specified for parallel processing; race conditions possible if multiple workers process same patient\",\n    \"Fill values: unspecified fill values (unmasked voxels, soft-tissue HU) may produce clinically incorrect outputs\"\n  ],\n  \"open_questions\": [\n    \"What is the exact filename pattern for individual structure masks? (e.g., <structure_name>.nii.gz, <patient_id>_<structure_name>.nii.gz?)\",\n    \"How is the mapping from individual structures to categories defined? (e.g., hardcoded list, external config file, regex patterns?)\",\n    \"For mask combination, should overlapping voxels use union, intersection, or priority-based selection?\",\n    \"What fill value should unmasked voxels have in real-intensity masks? (0, -1024, NaN, or background CT value?)\",\n    \"What is the target HU value for soft-tissue replacement in soft-tissue CT output?\",\n    \"How should background voxels (not in any structure) be handled in soft-tissue CT? (preserve original CT, set to air HU, or other?)\",\n    \"What format/location should the completion marker use? (file path, content, metadata?)\",\n    \"If a structure file is missing, should processing fail, skip that structure, or use a default mask?\",\n    \"Should outputs be written atomically (all-or-nothing) or incrementally?\",\n    \"Is there a predefined list of expected categories, or should the worker infer categories from filenames?\",\n    \"What is the concurrency model for multi-patient processing? (threading, multiprocessing, distributed?)\",\n    \"Are there memory or time limits per patient?\"\n  ]\n}\n```",
+  "worker_response_text": "{\n  \"understood_goal\": \"Process medical imaging data for each patient by combining TotalSeg structure masks into categories, filling masks with CT intensity values, and generating derived outputs like soft-tissue CT images. The work supports resumable batch processing with a focus on speed.\",\n  \"constraints_to_follow\": [\n    \"One CT file per patient exists at <dataset_root>/ct/<patient_id>.nii.gz and is readable.\",\n    \"All mask files for a patient are located in <dataset_root>/mask/<patient_id>_total/ and are co-registered to the CT image.\",\n    \"Mask combination uses binary union logic (any voxel masked in any source structure → 1 in combined mask).\",\n    \"Unmasked voxels in real-intensity masks are filled with a specified value (currently assumed to be 0).\",\n    \"Soft-tissue CT replaces foreground voxels with a fixed HU value (assumed to be 40), while preserving background from the original CT.\",\n    \"Completion tracking is done via a sentinel file in <output_root>/<patient_id>/ directory.\",\n    \"If a completion marker exists, the patient is skipped; otherwise, all outputs are recomputed.\",\n    \"Processing is per-patient with no cross-patient dependencies.\",\n    \"Outputs may overwrite existing files without backup.\",\n    \"No validation is performed on mask-CT spatial alignment.\"\n  ],\n  \"information_still_missing\": [\n    \"Exact filename pattern for individual structure masks (e.g., <structure_name>.nii.gz or <patient_id>_<structure_name>.nii.gz).\",\n    \"Mapping from individual structure names to category groups (hardcoded list, config file, regex?).\",\n    \"Whether mask combination uses union, intersection, or priority-based selection for overlapping voxels.\",\n    \"Fill value for unmasked voxels in real-intensity masks (0, -1024, NaN, or background CT value?).\",\n    \"Target HU value for soft-tissue replacement in soft-tissue CT output.\",\n    \"Handling of background voxels (not in any structure) in soft-tissue CT (preserve original CT, set to air HU, etc.).\",\n    \"Format and location of the completion marker (file name, content, metadata).\",\n    \"Behavior when a structure file is missing (fail, skip, default mask?).\",\n    \"Atomicity of output writing (all-or-nothing or incremental?).\",\n    \"Predefined list of expected categories or inference method from filenames.\",\n    \"Concurrency model for multi-patient processing (threading, multiprocessing, distributed?).\",\n    \"Memory or time limits per patient.\"\n  ],\n  \"first_3_concrete_actions\": [\n    \"Validate existence and readability of the CT file at <dataset_root>/ct/<patient_id>.nii.gz.\",\n    \"List all mask files in <dataset_root>/mask/<patient_id>_total/ to confirm availability and extract structure names.\",\n    \"Check for presence of a completion marker in <output_root>/<patient_id>/ to determine whether to skip or process the patient.\"\n  ]\n}",
+  "worker_response_json": {
+    "understood_goal": "Process medical imaging data for each patient by combining TotalSeg structure masks into categories, filling masks with CT intensity values, and generating derived outputs like soft-tissue CT images. The work supports resumable batch processing with a focus on speed.",
+    "constraints_to_follow": [
+      "One CT file per patient exists at <dataset_root>/ct/<patient_id>.nii.gz and is readable.",
+      "All mask files for a patient are located in <dataset_root>/mask/<patient_id>_total/ and are co-registered to the CT image.",
+      "Mask combination uses binary union logic (any voxel masked in any source structure → 1 in combined mask).",
+      "Unmasked voxels in real-intensity masks are filled with a specified value (currently assumed to be 0).",
+      "Soft-tissue CT replaces foreground voxels with a fixed HU value (assumed to be 40), while preserving background from the original CT.",
+      "Completion tracking is done via a sentinel file in <output_root>/<patient_id>/ directory.",
+      "If a completion marker exists, the patient is skipped; otherwise, all outputs are recomputed.",
+      "Processing is per-patient with no cross-patient dependencies.",
+      "Outputs may overwrite existing files without backup.",
+      "No validation is performed on mask-CT spatial alignment."
+    ],
+    "information_still_missing": [
+      "Exact filename pattern for individual structure masks (e.g., <structure_name>.nii.gz or <patient_id>_<structure_name>.nii.gz).",
+      "Mapping from individual structure names to category groups (hardcoded list, config file, regex?).",
+      "Whether mask combination uses union, intersection, or priority-based selection for overlapping voxels.",
+      "Fill value for unmasked voxels in real-intensity masks (0, -1024, NaN, or background CT value?).",
+      "Target HU value for soft-tissue replacement in soft-tissue CT output.",
+      "Handling of background voxels (not in any structure) in soft-tissue CT (preserve original CT, set to air HU, etc.).",
+      "Format and location of the completion marker (file name, content, metadata).",
+      "Behavior when a structure file is missing (fail, skip, default mask?).",
+      "Atomicity of output writing (all-or-nothing or incremental?).",
+      "Predefined list of expected categories or inference method from filenames.",
+      "Concurrency model for multi-patient processing (threading, multiprocessing, distributed?).",
+      "Memory or time limits per patient."
+    ],
+    "first_3_concrete_actions": [
+      "Validate existence and readability of the CT file at <dataset_root>/ct/<patient_id>.nii.gz.",
+      "List all mask files in <dataset_root>/mask/<patient_id>_total/ to confirm availability and extract structure names.",
+      "Check for presence of a completion marker in <output_root>/<patient_id>/ to determine whether to skip or process the patient."
+    ]
+  },
+  "deterministic_contract_checks": {
+    "planner_non_empty": true,
+    "planner_has_json_tail": true,
+    "worker_json_parse_ok": true,
+    "worker_required_fields_present": true,
+    "violations": []
+  },
+  "judge_instructions": [
+    "Evaluate information flow, not whether final code was produced.",
+    "Planner constraint coverage must be judged against gold_constraints that are reasonably inferable from the visible request; do not require impossible hidden details unless the episode rubric marks them critical.",
+    "Penalize planner false confidence when it gives worker a concrete wrong default instead of flagging a missing detail.",
+    "Reward worker output when it correctly flags missing information caused by a weak planner spec.",
+    "Score each dimension 0-2 and total to 0-10.",
+    "Return strict JSON only."
+  ],
+  "output_schema": {
+    "planner_constraint_coverage_score": "0-2",
+    "planner_risk_flagging_score": "0-2",
+    "worker_goal_alignment_score": "0-2",
+    "worker_missing_info_score": "0-2",
+    "worker_first_action_precision_score": "0-2",
+    "spec_score": "0-10",
+    "worker_score": "0-10",
+    "final_verdict": "spec_strong | spec_acceptable | spec_weak | spec_unsafe",
+    "covered_gold_constraints": [
+      "gold constraints captured by planner or worker"
+    ],
+    "missed_gold_constraints": [
+      "important gold constraints omitted or mishandled"
+    ],
+    "forbidden_assumptions_made": [
+      "wrong assumptions made by planner or worker"
+    ],
+    "separation_notes": "why this cell should or should not separate models",
+    "concise_rationale": "short evidence-based explanation"
+  }
+}

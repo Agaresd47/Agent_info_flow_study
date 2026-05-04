@@ -1,0 +1,31 @@
+{
+  "planner_constraint_coverage_score": 1,
+  "planner_risk_flagging_score": 1,
+  "worker_goal_alignment_score": 1,
+  "worker_missing_info_score": 1,
+  "worker_first_action_precision_score": 1,
+  "spec_score": 4,
+  "worker_score": 4,
+  "final_verdict": "spec_weak",
+  "covered_gold_constraints": [
+    "Step 1 is copy to <output_root>/healthy/",
+    "Step 2 is move to <output_root>/healthy_clean/",
+    "Target output directories should be created if missing",
+    "CSV metadata file and image directory are identified",
+    "Worker preserved the two-step extraction intent"
+  ],
+  "missed_gold_constraints": [
+    "Healthy must be determined at patient level: all scans for a patient must be 'No Finding'",
+    "Do not treat a single 'No Finding' row as sufficient for healthy copy",
+    "Step 2 must operate on the step1 output and select patients appearing only once in the original CSV",
+    "Exact image path join <dataset_root>/image/<Image Index> is not specified",
+    "Planner did not clearly expose that patient-level logic and single-row logic are critical constraints"
+  ],
+  "forbidden_assumptions_made": [
+    "Planner assumed each CSV row corresponds to one image entry and that patient ID uniquely identifies patients without grounding",
+    "Worker repeated that each row corresponds to one image entry, reinforcing an underspecified and potentially wrong schema assumption",
+    "Worker added source-file validation as if it were part of the required contract, though it was not established as a critical constraint"
+  ],
+  "separation_notes": "This episode should separate strong vs weak planners because the hidden critical constraint is patient-level health filtering, which the planner failed to state. The worker mostly mirrors the weak spec instead of surfacing that gap, so it does not recover the missing logic.",
+  "concise_rationale": "The planner preserved the high-level two-step copy-then-move workflow and directory handling, but missed the key patient-level health criterion and blurred the single-row filter. The worker largely accepted those weak assumptions instead of flagging them, so both spec quality and information recovery are limited."
+}

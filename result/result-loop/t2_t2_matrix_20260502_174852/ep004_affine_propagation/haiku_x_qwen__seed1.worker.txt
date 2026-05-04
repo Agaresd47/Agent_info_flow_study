@@ -1,0 +1,32 @@
+{
+  "understood_goal": "Align affine transformations of TotalSeg-generated mask files with the CT image affine to correct spatial misalignment caused by sign inconsistencies in QR decomposition.",
+  "constraints_to_follow": [
+    "Each patient directory must contain a valid ct.nii.gz file.",
+    "Only .nii.gz and .nii mask files (excluding ct.nii.gz) should be processed.",
+    "Affine matrices are 4x4 homogeneous transforms.",
+    "No image data resampling is required; only affine header modification is allowed.",
+    "Writing to mask files is irreversible; implement dry-run mode and backups before enabling writes.",
+    "Numerical stability checks must be included for QR decomposition and sign alignment.",
+    "Each patient directory must be processed independently for parallelization safety.",
+    "Error handling must be per-patient to avoid blocking other workers in parallel execution.",
+    "Floating-point comparisons for signs must include a tolerance threshold."
+  ],
+  "information_still_missing": [
+    "Whether the R matrix from QR decomposition should have its diagonal normalized to positive values.",
+    "How to handle negative determinants during QR decomposition (preserve or flip).",
+    "The specific tolerance threshold for determining what off-diagonal elements constitute 'noise' and should be zeroed.",
+    "Whether 'sign alignment' implies element-wise sign matching or orientation-preserving alignment.",
+    "If there are subdirectories or naming conventions to exclude mask files (e.g., metadata, logs).",
+    "The preferred parallelization strategy (thread pool, process pool, or distributed job queue).",
+    "Where and how to store backups of original mask files if needed.",
+    "How to validate that the alignment was successful (e.g., spatial overlap check).",
+    "What constitutes a success or failure for reporting purposes.",
+    "Whether to log cleaned affines per patient and how they should be reported.",
+    "Resource limits per worker (memory/CPU) and retry policy for transient I/O failures."
+  ],
+  "first_3_concrete_actions": [
+    "Implement and test single-patient processing logic including CT affine loading, QR decomposition, spacing extraction, and sign alignment on a small set of sample data.",
+    "Define and implement a dry-run mode that reports changes without modifying any files.",
+    "Set up error logging and per-patient status tracking to ensure isolated failures do not affect parallel execution."
+  ]
+}

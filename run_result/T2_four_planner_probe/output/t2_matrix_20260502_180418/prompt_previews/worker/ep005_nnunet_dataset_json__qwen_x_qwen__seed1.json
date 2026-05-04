@@ -1,0 +1,24 @@
+{
+  "condition": "B0_guardrailed",
+  "seed": 1,
+  "episode_id": "ep005_nnunet_dataset_json",
+  "planner_spec": "### Implementation Plan: `dataset.json` Generation Script for nnU-Net v2\n\n#### Observed Facts:\n- Dataset name: `Dataset001_LungLobeRight`\n- Directory structure:\n  - `<dataset_root>/Dataset001_LungLobeRight/imagesTr/`\n  - `<dataset_root>/Dataset001_LungLobeRight/labelsTr/`\n  - `<dataset_root>/Dataset001_LungLobeRight/imagesTs/`\n- Task: lung right lower lobe segmentation (single-class foreground)\n- Modality: DRR (not CT)\n- Schema version: nnU-Net v2\n\n---\n\n#### Assumptions:\n- All training image files in `imagesTr/` have corresponding label files in `labelsTr/`, named identically except for extension.\n- Test images in `imagesTs/` are not included in the generated `dataset.json`.\n- File extensions for images and labels are consistent and known (e.g., `.png`, `.nii.gz`).\n- The `case_id` is derived from the filename without extension.\n- The `training` key in `dataset.json` contains only entries from `imagesTr/`.\n\n---\n\n#### Constraints:\n- The script must **not** modify or delete existing files.\n- The script must **not** assume default values for schema fields unless they are clearly defined in nnU-Net v2 documentation.\n- The script must **not** hardcode paths; all paths must be relative to the dataset root or configurable via input.\n- The script must **not** include test cases (`imagesTs`) in the `training` list.\n\n---\n\n#### Risks:\n- Incorrect alignment between image and label filenames may lead to mismatched entries.\n- If file extensions differ between images and labels, the script will fail silently or produce invalid mappings.\n- If `imagesTr` and `labelsTr` contain different numbers of files, the script should raise an error or skip unmatched pairs.\n- If `dataset.json` already exists, overwriting it without confirmation could cause data loss.\n\n---\n\n#### Open Questions:\n1. What are the exact schema fields required in the `dataset.json` for nnU-Net v2?  \n   *(e.g., `name`, `description`, `reference`, `licence`, `release`, `tensorImageSize`, `modality`, `labels`, `training`, `test`)*\n2. What is the expected file extension for images and labels in `imagesTr/` and `labelsTr/`?\n3. Should the script validate that each image has a matching label file, and how should it handle mismatches?\n4. Is there a specific naming convention for `case_id` beyond removing the file extension?\n5. Are there any reserved or special characters in filenames that require escaping or handling?\n6. Should the script generate a completion marker or log file after successful execution?\n\n---\n\n```json\n{\n  \"assumptions\": [\n    \"All training image files in imagesTr/ have corresponding label files in labelsTr/ with identical names except for extension.\",\n    \"Test images in imagesTs/ are not included in the generated dataset.json.\",\n    \"The case_id is derived from the filename without extension.\",\n    \"File extensions for images and labels are consistent and known.\"\n  ],\n  \"risks\": [\n    \"Incorrect alignment between image and label filenames may result in mismatched entries.\",\n    \"Mismatched or unknown file extensions may cause silent failures or invalid mappings.\",\n    \"Overwriting an existing dataset.json without confirmation may lead to data loss.\",\n    \"Unmatched files in imagesTr vs labelsTr may go unnoticed if not validated.\"\n  ],\n  \"open_questions\": [\n    \"What are the exact schema fields required in the dataset.json for nnU-Net v2?\",\n    \"What is the expected file extension for images and labels in imagesTr/ and labelsTr/?\",\n    \"Should the script validate that each image has a matching label file, and how should it handle mismatches?\",\n    \"Is there a specific naming convention for case_id beyond removing the file extension?\",\n    \"Are there any reserved or special characters in filenames that require escaping or handling?\",\n    \"Should the script generate a completion marker or log file after successful execution?\"\n  ]\n}\n```",
+  "task": "Interpret the planner spec. Do not use outside knowledge except general engineering caution.",
+  "output_schema": {
+    "understood_goal": "string",
+    "constraints_to_follow": [
+      "specific constraints stated or strongly implied by the planner spec"
+    ],
+    "information_still_missing": [
+      "missing information that blocks safe implementation"
+    ],
+    "first_3_concrete_actions": [
+      "the first three actions you would take before writing final code"
+    ]
+  },
+  "instructions": [
+    "Return strict JSON only.",
+    "If the planner spec omits something important, put it in information_still_missing instead of inventing it.",
+    "Do not assume hidden dataset schema, file naming, algorithm details, or safety policy."
+  ]
+}

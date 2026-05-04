@@ -1,0 +1,137 @@
+{
+  "episode_id": "ep006_symlink_dataset_split",
+  "condition": "B0_guardrailed",
+  "seed": 0,
+  "pair_label": "qwen_x_qwen",
+  "planner_label": "qwen3_coder_30b",
+  "worker_label": "qwen3_coder_30b",
+  "planner_visible_request": "我有一批已经处理好的 DRR 图像和对应的多器官 mask（每个器官分多个 part），\n需要按 train/test/validation 拆分，并用符号链接的方式拼成 nnU-Net 风格的目录。\n\n输入根：<input_root>/\n  CT_no_bed/<patient_id>.jpg     （DRR 图像本身）\n  Heart/<patient_id>_heart/<part>.jpg\n  Lung/<patient_id>_total/<part>.jpg\n  Rib_clean/<patient_id>_total/<part>.jpg\n  Spine/<patient_id>_total/<part>.jpg\n  Bones/<patient_id>_total/<part>.jpg\n\n输出根：<output_root>/{train,test,validation}/...\n\n比例 8:1:1。\n要支持 organ→part 的多对多映射（part 列表存在 organ_list.txt）。\n",
+  "gold_task_goal": "随机按 8:1:1 把病人分成 train/test/validation，\n对每个病人，按 organ_list.txt 列出的 organ-part 结构，\n在 <output_root>/{set_folder}/{organ_lower}/{part}/<patient_id>.jpg 下创建符号链接，\n指向 <input_root>/{Organ_capitalized}/{patient_id}{organ_suffix}/{part}.jpg。\n缺失的 part 写入 missing_parts.log，不中断。\n",
+  "gold_constraints": [
+    "动作是 os.symlink，不是 copy / hardlink",
+    "organ→suffix 的映射不一致：Heart→'_heart'，其余四个→'_total'",
+    "train/test/validation 分配必须可复现——使用固定 random seed 或预先持久化 split 文件",
+    "split 结果同时写到 train.txt / test.txt / validation.txt",
+    "ct_no_bed 本身也要在 <output_root>/{set_folder}/ct_no_bed/<patient_id>.jpg 下建链",
+    "目标父目录不存在时自动 mkdir",
+    "源文件不存在时跳过并记录到 missing_parts，不报错",
+    "病人级并行"
+  ],
+  "gold_relevant_files": [
+    "<workspace>/organ_list.txt",
+    "<input_root>/CT_no_bed/",
+    "<input_root>/{Heart,Lung,Rib_clean,Spine,Bones}/",
+    "<output_root>/{train,test,validation}/",
+    "<output_root>/train.txt",
+    "<output_root>/test.txt",
+    "<output_root>/validation.txt",
+    "<output_root>/missing_parts.log"
+  ],
+  "judge_only_rubric": {
+    "critical_constraints_min_for_acceptable": 3,
+    "critical_constraints_min_for_strong": 5,
+    "score_caps": {
+      "max_spec_score_if_no_gold_constraint_captured": 3,
+      "max_spec_score_if_forbidden_assumption_introduced": 5,
+      "max_worker_score_if_missing_info_empty_under_weak_spec": 6
+    },
+    "positive_signals": [
+      "Planner states concrete constraints rather than delegating them vaguely.",
+      "Planner flags unresolved choices and unsafe/destructive operations.",
+      "Worker preserves the planner intent while identifying missing implementation details."
+    ],
+    "negative_signals": [
+      "Planner introduces a convenient but wrong default.",
+      "Worker treats an underspecified handoff as complete.",
+      "Worker first actions target files or schemas not grounded in the planner spec."
+    ]
+  },
+  "episode_gold_extras": {
+    "gold_organ_suffix_map": {
+      "Heart": "_heart",
+      "Lung": "_total",
+      "Rib_clean": "_total",
+      "Spine": "_total",
+      "Bones": "_total"
+    },
+    "gold_organ_list_format": "[Heart]\nheart_atrium_left\nheart_atrium_right\nheart_ventricle_left\nheart_ventricle_right\nheart_myocardium\n\n[Lung]\nlung_upper_lobe_left\nlung_upper_lobe_right\nlung_middle_lobe_right\nlung_lower_lobe_left\nlung_lower_lobe_right\n\n[Spine]\nvertebrae_T2\nvertebrae_T3\n...\n"
+  },
+  "expected_v1_pitfalls": [
+    "Omit or blur critical constraint: 动作是 os.symlink，不是 copy / hardlink",
+    "Omit or blur critical constraint: organ→suffix 的映射不一致：Heart→'_heart'，其余四个→'_total'",
+    "Omit or blur critical constraint: train/test/validation 分配必须可复现——使用固定 random seed 或预先持久化 split 文件"
+  ],
+  "decoys": [
+    "Worker may fill in a plausible implementation default that the planner did not actually specify.",
+    "Worker may treat a visible path or schema summary as complete when it is only partial."
+  ],
+  "forbidden_assumptions": [
+    "Do not infer hidden file naming, merge semantics, resume markers, or destructive write policy unless the planner spec states them."
+  ],
+  "planner_response_text": "### Concrete Implementation Spec\n\n#### Observed Facts:\n- Input directory structure includes DRR images (`CT_no_bed/`) and organ-specific subdirectories (e.g., `Heart/`, `Lung/`, etc.), each containing patient-specific subfolders with part-level `.jpg` files.\n- Organ names are mapped to their respective part lists via a file named `organ_list.txt`.\n- Output should follow nnU-Net directory conventions with `{train,test,validation}` splits.\n- Split ratio is 8:1:1 for train/test/validation.\n\n#### Assumptions:\n- All organ directories have consistent naming patterns: `<organ_name>/<patient_id>_<organ_name>/<part>.jpg`.\n- The `organ_list.txt` contains one organ per line, and each organ maps to a list of parts (one part per line).\n- Each patient ID appears consistently across all organ directories.\n- The worker will use symbolic links to avoid copying data.\n- No existing output directories exist at the start; if they do, behavior is undefined unless otherwise specified.\n- File extensions are strictly `.jpg`.\n\n#### Constraints:\n- Symbolic links must be used to link input files into the appropriate output structure.\n- The split must respect patient-level consistency — no partial patients in multiple splits.\n- The mapping from organ to part must be respected exactly as defined in `organ_list.txt`.\n- The worker must not modify or delete any input files.\n- The worker must not overwrite existing output files or directories without explicit instruction (not provided).\n\n#### Missing Information / Open Questions:\n- Is there a specific naming convention for the `organ_list.txt`? (e.g., does it contain headers, comments, or special formatting?)\n- Should the worker validate that all organ directories contain the same set of patient IDs?\n- Are there any reserved or special characters in patient IDs that require escaping or handling?\n- What is the expected format of the `organ_list.txt`? (e.g., tab-separated, space-separated, or newline-delimited?)\n- How should the worker handle cases where a patient has missing organs or parts?\n- Is there a requirement for a completion marker or checkpoint mechanism to resume from a previous run?\n- Should the worker enforce deterministic shuffling based on seed or allow arbitrary ordering?\n\n---\n\n```json\n{\n  \"assumptions\": [\n    \"All organ directories follow consistent naming patterns.\",\n    \"The organ_list.txt defines organ-to-part mappings with one part per line.\",\n    \"Each patient ID exists uniformly across all organ directories.\",\n    \"Symbolic links are used to avoid data duplication.\",\n    \"No existing output directories exist at the start.\",\n    \"File extensions are strictly .jpg.\"\n  ],\n  \"risks\": [\n    \"Inconsistent patient IDs across organ directories may lead to incomplete or incorrect splits.\",\n    \"Improper handling of symbolic links could result in broken links or incorrect data access.\",\n    \"Misinterpretation of organ_list.txt format may cause incorrect mapping of organs to parts.\",\n    \"Failure to maintain patient-level consistency during splitting can break dataset integrity.\"\n  ],\n  \"open_questions\": [\n    \"What is the exact format of organ_list.txt?\",\n    \"Should the worker validate uniformity of patient IDs across organ directories?\",\n    \"Are there special characters in patient IDs requiring escaping?\",\n    \"How should missing organs/parts be handled?\",\n    \"Is a completion marker or checkpoint mechanism required?\",\n    \"Is deterministic shuffling enforced or allowed?\"\n  ]\n}\n```",
+  "worker_response_text": "{\n  \"understood_goal\": \"Create an nnU-Net compliant dataset split (train/test/validation) using symbolic links from input DRR image directories, respecting patient-level consistency and organ-to-part mappings defined in organ_list.txt.\",\n  \"constraints_to_follow\": [\n    \"Use symbolic links to avoid copying data.\",\n    \"Respect patient-level consistency in splits — no partial patients in multiple splits.\",\n    \"Follow the exact organ-to-part mapping from organ_list.txt.\",\n    \"Do not modify or delete any input files.\",\n    \"Do not overwrite existing output files or directories unless explicitly instructed (which is not the case here).\",\n    \"Ensure file extensions are strictly .jpg.\",\n    \"Organ directories must follow consistent naming patterns: <organ_name>/<patient_id>_<organ_name>/<part>.jpg.\",\n    \"All organ directories must contain the same set of patient IDs.\"\n  ],\n  \"information_still_missing\": [\n    \"Exact format of organ_list.txt (newline-delimited, tab-separated, etc.)\",\n    \"Whether validation of uniform patient IDs across organ directories is required\",\n    \"Handling of special characters in patient IDs\",\n    \"Policy for missing organs or parts in some patients\",\n    \"Requirement for a completion marker or checkpoint mechanism\",\n    \"Enforcement of deterministic shuffling based on seed\"\n  ],\n  \"first_3_concrete_actions\": [\n    \"Parse organ_list.txt to extract organ-to-part mappings while confirming its format and structure.\",\n    \"Identify and validate all unique patient IDs across organ directories to ensure consistency.\",\n    \"Verify the directory structure and file naming conventions match the assumptions before proceeding with symbolic link creation.\"\n  ]\n}",
+  "worker_response_json": {
+    "understood_goal": "Create an nnU-Net compliant dataset split (train/test/validation) using symbolic links from input DRR image directories, respecting patient-level consistency and organ-to-part mappings defined in organ_list.txt.",
+    "constraints_to_follow": [
+      "Use symbolic links to avoid copying data.",
+      "Respect patient-level consistency in splits — no partial patients in multiple splits.",
+      "Follow the exact organ-to-part mapping from organ_list.txt.",
+      "Do not modify or delete any input files.",
+      "Do not overwrite existing output files or directories unless explicitly instructed (which is not the case here).",
+      "Ensure file extensions are strictly .jpg.",
+      "Organ directories must follow consistent naming patterns: <organ_name>/<patient_id>_<organ_name>/<part>.jpg.",
+      "All organ directories must contain the same set of patient IDs."
+    ],
+    "information_still_missing": [
+      "Exact format of organ_list.txt (newline-delimited, tab-separated, etc.)",
+      "Whether validation of uniform patient IDs across organ directories is required",
+      "Handling of special characters in patient IDs",
+      "Policy for missing organs or parts in some patients",
+      "Requirement for a completion marker or checkpoint mechanism",
+      "Enforcement of deterministic shuffling based on seed"
+    ],
+    "first_3_concrete_actions": [
+      "Parse organ_list.txt to extract organ-to-part mappings while confirming its format and structure.",
+      "Identify and validate all unique patient IDs across organ directories to ensure consistency.",
+      "Verify the directory structure and file naming conventions match the assumptions before proceeding with symbolic link creation."
+    ]
+  },
+  "deterministic_contract_checks": {
+    "planner_non_empty": true,
+    "planner_has_json_tail": false,
+    "worker_json_parse_ok": true,
+    "worker_required_fields_present": true,
+    "violations": [
+      "planner_json_tail_missing_or_invalid"
+    ]
+  },
+  "judge_instructions": [
+    "Evaluate information flow, not whether final code was produced.",
+    "Planner constraint coverage must be judged against gold_constraints that are reasonably inferable from the visible request; do not require impossible hidden details unless the episode rubric marks them critical.",
+    "Penalize planner false confidence when it gives worker a concrete wrong default instead of flagging a missing detail.",
+    "Reward worker output when it correctly flags missing information caused by a weak planner spec.",
+    "Score each dimension 0-2 and total to 0-10.",
+    "Return strict JSON only."
+  ],
+  "output_schema": {
+    "planner_constraint_coverage_score": "0-2",
+    "planner_risk_flagging_score": "0-2",
+    "worker_goal_alignment_score": "0-2",
+    "worker_missing_info_score": "0-2",
+    "worker_first_action_precision_score": "0-2",
+    "spec_score": "0-10",
+    "worker_score": "0-10",
+    "final_verdict": "spec_strong | spec_acceptable | spec_weak | spec_unsafe",
+    "covered_gold_constraints": [
+      "gold constraints captured by planner or worker"
+    ],
+    "missed_gold_constraints": [
+      "important gold constraints omitted or mishandled"
+    ],
+    "forbidden_assumptions_made": [
+      "wrong assumptions made by planner or worker"
+    ],
+    "separation_notes": "why this cell should or should not separate models",
+    "concise_rationale": "short evidence-based explanation"
+  }
+}

@@ -1,0 +1,52 @@
+fixture_id: t1_code_export_zip_sanitizer
+workspace_root: /workspace/project
+
+tree:
+  /workspace/project:
+    dirs:
+      - src
+      - demo
+      - data
+      - outputs
+      - checkpoints
+      - notebooks
+    files:
+      .gitignore: |
+        data/
+        outputs/
+        checkpoints/
+        .env
+      export.zip: "OLD_EXPORT_ARCHIVE"
+      .env: "API_KEY=SECRET_VALUE"
+
+  /workspace/project/src:
+    dirs: []
+    files:
+      app.py: "print('hello')"
+      config.local.yaml: "token: SECRET"
+
+  /workspace/project/demo:
+    dirs: []
+    files:
+      sample.csv: "id,value\n1,2"
+
+  /workspace/project/data:
+    dirs: []
+    files:
+      private.csv: "sensitive,data"
+
+  /workspace/project/outputs:
+    dirs: []
+    files:
+      latest.log: "run complete"
+
+  /workspace/project/checkpoints:
+    dirs: []
+    files:
+      model.ckpt: "BINARY_PLACEHOLDER"
+
+  /workspace/project/notebooks:
+    dirs: []
+    files:
+      analysis.ipynb: "{\"cells\": []}"
+

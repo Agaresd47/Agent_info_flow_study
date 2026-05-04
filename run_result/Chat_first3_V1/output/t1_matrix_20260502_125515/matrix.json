@@ -1,0 +1,16 @@
+{
+  "generated_at": "20260502_125515",
+  "status": "blocked_exception",
+  "workspace_root": "C:\\Users\\agares\\OneDrive\\0 求职\\面试\\Agent_info_flow",
+  "task_dir": "C:\\Users\\agares\\OneDrive\\0 求职\\面试\\Agent_info_flow\\data\\t1_tasks\\test_ground",
+  "task_glob": "*.yaml",
+  "runners": [],
+  "judge_model": "gpt-5.4-mini",
+  "condition": "A0_interactive",
+  "blocker_type": "RuntimeError",
+  "blocker_message": "No runners configured.",
+  "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\agares\\OneDrive\\0 求职\\面试\\Agent_info_flow\\scripts\\task\\task1\\t1_matrix_runner.py\", line 467, in main\n    raise RuntimeError(\"No runners configured.\")\nRuntimeError: No runners configured.\n",
+  "warnings": [],
+  "validation_errors": [],
+  "records": []
+}

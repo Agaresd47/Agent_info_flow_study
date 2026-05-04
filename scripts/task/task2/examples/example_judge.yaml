@@ -1,0 +1,41 @@
+gold_task_goal: >
+  Produce a worker-ready spec for reorganizing case image/mask pairs into a training
+  dataset without guessing naming conventions or completion semantics.
+
+gold_constraints:
+  - "The planner must define the exact case-id mapping between image and mask files."
+  - "The planner must state whether existing destination files should be overwritten, skipped, or quarantined."
+  - "The planner must specify the completion marker or resume rule before claiming resumability."
+  - "The worker should flag missing naming or overwrite policy instead of inventing it."
+
+gold_relevant_files:
+  - "<dataset_root>/cases/<case_id>/image.nii.gz"
+  - "<dataset_root>/cases/<case_id>/mask.nii.gz"
+  - "<output_root>/imagesTr/"
+  - "<output_root>/labelsTr/"
+
+expected_v1_pitfalls:
+  - "Planner says to pair files by stem but never defines stem normalization."
+  - "Planner says the task is resumable but omits the completion marker."
+  - "Worker assumes overwrite behavior from common practice."
+
+decoys:
+  - "The file index makes the layout look complete even though policy details are missing."
+
+forbidden_assumptions:
+  - "Do not assume overwrite, skip, or quarantine policy."
+  - "Do not assume a completion marker filename."
+
+judge_only_rubric:
+  critical_constraints_min_for_acceptable: 2
+  critical_constraints_min_for_strong: 3
+  score_caps:
+    max_spec_score_if_no_gold_constraint_captured: 3
+    max_spec_score_if_forbidden_assumption_introduced: 5
+    max_worker_score_if_missing_info_empty_under_weak_spec: 6
+  positive_signals:
+    - "Planner separates facts from assumptions."
+    - "Worker names missing policy details explicitly."
+  negative_signals:
+    - "Planner delegates exact mapping to worker without constraints."
+    - "Worker proposes destructive action without policy."

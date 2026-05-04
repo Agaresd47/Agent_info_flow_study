@@ -1,0 +1,26 @@
+{
+  "understood_goal": "Correct spatial misalignment between CT images and TotalSeg-generated masks by aligning their affine matrices through QR decomposition and sign pattern matching.",
+  "constraints_to_follow": [
+    "Modifying mask affines is irreversible; backup or versioning strategy is required.",
+    "File locking or atomic writes are needed to prevent race conditions during parallel processing.",
+    "Only the affine matrix in the NIfTI header should be modified; all other metadata must remain unchanged.",
+    "QR decomposition must be consistently applied to the 3x3 rotation/scaling block of the 4x4 affine matrix.",
+    "Parallelization is safe at the patient level with no cross-patient dependencies.",
+    "The reference affine is derived from the ct.nii.gz file in each patient directory."
+  ],
+  "information_still_missing": [
+    "Exact glob pattern or list of mask file names per patient (e.g., all *.nii.gz except ct.nii.gz or specific prefixes like *_mask.nii.gz).",
+    "Method for correcting sign mismatches in the affine matrix (e.g., flip rows/columns, apply permutation matrix, reorder axes).",
+    "Policy for backing up original mask files before modification (backup location, format, overwrite behavior).",
+    "Preferred parallelization strategy (thread pool, process pool, or distributed job queue) and number of max workers.",
+    "Mechanism for marking successful patient processing and resuming after interruption (log format, location, completion marker).",
+    "Thresholds for validating affine corrections (e.g., acceptable tolerance for numerical errors).",
+    "Root input directory path and whether output should be in-place or in a separate directory.",
+    "Specific library or algorithm variant for QR decomposition (e.g., NumPy, SciPy)."
+  ],
+  "first_3_concrete_actions": [
+    "Confirm the exact file naming convention or glob pattern for identifying mask files within each patient directory.",
+    "Define the precise method for applying sign correction when a mismatch is detected in the QR decomposition results.",
+    "Specify the backup and write safety mechanism (e.g., atomic writes using temporary files, versioned outputs, or in-place modification with rollback capability)."
+  ]
+}

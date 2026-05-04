@@ -1,0 +1,34 @@
+{
+  "understood_goal": "Assemble a multi-organ medical imaging dataset from pre-processed DRR images and organ-specific masks, split into train/test/validation (8:1:1), and organize via symlinks into nnU-Net directory structure.",
+  "constraints_to_follow": [
+    "Worker must validate that all source files exist before creating symlinks",
+    "Worker must handle symlink creation atomically or with rollback capability",
+    "Worker must detect and report naming collisions before proceeding",
+    "Worker must use a seeded random process if reproducibility is required",
+    "Worker must clarify output naming scheme before symlinking",
+    "Symlinks should point to relative paths for portability",
+    "Output directory structure is flat per split (no nested organ subdirectories)",
+    "All .jpg files in organ subdirectories are valid mask parts requiring no additional filtering",
+    "Patient IDs are consistently extractable as the first underscore-delimited component of filenames",
+    "Patient IDs are globally unique across all organs",
+    "No existing files in output directories; behavior on collision is undefined"
+  ],
+  "information_still_missing": [
+    "Exact format and location of organ_list.txt (one organ per line? JSON? CSV? Does it map organ→parts?)",
+    "Exact patient ID extraction rule (e.g., prefix before first underscore? validated against a list?)",
+    "nnU-Net output directory naming convention (imagesTr/labelsTr/imagesTs/labelsTs/imagesVal/labelsVal?)",
+    "How multi-part masks should be named/organized in output (<patient_id>_<organ>_<part>.jpg or <patient_id>_<part>.jpg?)",
+    "Whether symlinks should use absolute or relative paths",
+    "How 8:1:1 split remainders should be handled if total patient count is not divisible by 10",
+    "Whether split assignment should be deterministic (seeded) or random",
+    "If a split manifest or checkpoint file is required for reproducibility or resumption",
+    "Policy for handling symlink creation failures (rollback? partial output? error log?)",
+    "Whether the worker should validate source file existence before creating symlinks",
+    "Whether output should include a manifest of created symlinks and split statistics"
+  ],
+  "first_3_concrete_actions": [
+    "Validate existence of organ_list.txt and parse its format to understand organ-to-parts mapping",
+    "Enumerate all patient IDs from CT_no_bed/ and organ directories, and detect any naming collisions or malformed filenames",
+    "Clarify nnU-Net output directory naming convention and decide on symlink path strategy (absolute vs. relative)"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "understood_goal": "Generate a `dataset.json` file for an nnU-Net v2 dataset following the specified structure and conventions, specifically for segmenting the lung lower lobe right using DRR modality.",
+  "constraints_to_follow": [
+    "The generated `dataset.json` must conform to the nnU-Net v2 schema.",
+    "The `modality` field must be set to `DRR`.",
+    "The `labels` dictionary must map `0` to `background` and `1` to `lung_lower_lobe_right`.",
+    "The `training` list must include all training cases with correct relative paths from the dataset root.",
+    "File names in `imagesTr/` and `labelsTr/` must match exactly.",
+    "The dataset ID (`Dataset001`) is fixed and corresponds to the folder name.",
+    "Only one foreground class (`lung_lower_lobe_right`) is used."
+  ],
+  "information_still_missing": [
+    "Exact naming conventions for image and label files beyond matching base names.",
+    "Whether the `description` field is required or should be an empty string.",
+    "Whether the `reference` or `licence` fields should be included and their values if so.",
+    "Whether metadata fields like `release` or `tensorImageSize` are required."
+  ],
+  "first_3_concrete_actions": [
+    "Verify the exact file naming convention in `imagesTr/` and `labelsTr/` by inspecting sample filenames.",
+    "Confirm whether optional fields like `description`, `reference`, and `licence` are required or can be omitted.",
+    "Check if any metadata fields such as `release` or `tensorImageSize` are mandatory according to nnU-Net v2 documentation or schema."
+  ]
+}

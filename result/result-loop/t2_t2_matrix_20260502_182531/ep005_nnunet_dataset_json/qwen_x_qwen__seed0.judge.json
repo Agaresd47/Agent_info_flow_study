@@ -1,0 +1,44 @@
+{
+  "planner_constraint_coverage_score": 2,
+  "planner_risk_flagging_score": 1,
+  "worker_v1_score": 6,
+  "planner_revision_score": 4,
+  "worker_v2_score": 4,
+  "understanding_delta_score": 3,
+  "spec_score": 5,
+  "worker_score": 5,
+  "handoff_performance_score": 4,
+  "final_verdict": "spec_weak",
+  "covered_or_flagged_constraints": [
+    "nnU-Net v2 schema differs from v1; planner explicitly treated it as v2 and asked for exact schema verification.",
+    "channel_names/labels key format was surfaced as an uncertainty instead of silently assumed.",
+    "Training image/label case-id alignment was explicitly stated: <case_id>_0000.nii.gz for images and <case_id>.nii.gz for labels.",
+    "Relative paths in dataset.json were explicitly constrained to ./imagesTr/, ./labelsTr/, and ./imagesTs/.",
+    "Test set has no corresponding labels was explicitly stated.",
+    "file_ending must be .nii.gz was explicitly stated.",
+    "tensorImageSize was explicitly called out as not required / deprecated in the handoff.",
+    "The planner flagged missing-label/mismatch risks and asked the worker not to assume behavior for unlisted cases."
+  ],
+  "covered_gold_constraints": [
+    "training image filename rule with _0000.nii.gz suffix stripped to form case_id",
+    "labelsTr filename rule without _0000 suffix",
+    "training paths relative with ./imagesTr/ and ./labelsTr/",
+    "test paths relative with ./imagesTs/",
+    "imagesTs do not require labels",
+    "file_ending = .nii.gz",
+    "tensorImageSize omitted",
+    "v2 schema awareness and non-v1 handling"
+  ],
+  "missed_gold_constraints": [
+    "The exact v2 channel_name schema detail (dict key meaning and concrete expected mapping) was not pinned down cleanly enough.",
+    "The labels structure was mishandled in the revision: planner stated labels should use '0' for the foreground class, which is a wrong concrete default.",
+    "The required labels dict form with background and foreground entries as string keys was not clearly preserved.",
+    "The final dataset.json skeleton required by the episode was not concretely captured as a full implementation target."
+  ],
+  "forbidden_assumptions_made": [
+    "Planner revision introduced a concrete but wrong default that labels should use '0' for the foreground class.",
+    "Worker_v2 adopted the planner's wrong concrete default instead of keeping the uncertainty open."
+  ],
+  "separation_notes": "This episode separates planners that preserve exact schema constraints from those that over-commit to plausible but wrong defaults. The strongest signal is whether the handoff keeps critical v2-vs-v1 differences unresolved when needed, rather than inventing a schema mapping.",
+  "concise_rationale": "The planner captured most critical nnU-Net v2 constraints: relative paths, case-id alignment, test/no-label handling, file_ending, and tensorImageSize omission. However, the revision injected a wrong concrete default for labels, which is a forbidden assumption and materially weakens the handoff. Worker_v1 was appropriately cautious; worker_v2 inherited the bad default instead of preserving uncertainty. Overall: decent coverage, but unsafe on a core schema detail."
+}

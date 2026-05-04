@@ -1,0 +1,29 @@
+fixture_id: t1_nnunet_cli_inference_plan
+workspace_root: /workspace/segmentation_project
+
+tree:
+  /workspace/segmentation_project:
+    dirs:
+      - dirty_work
+      - scripts
+      - old
+    files:
+      README.md: "Use the current inference wrapper documented here."
+      model_registry.json: "{\"models\": [{\"dataset\": \"Dataset101_Brain\"}]}"
+      last_run.log: "nnUNetv2_predict -d Dataset999_Old -o /workspace/old_preds"
+
+  /workspace/segmentation_project/dirty_work:
+    dirs: []
+    files:
+      unet_seg.py: "subprocess.run(['nnUNetv2_predict', '-d', 'Dataset999_Old'])"
+
+  /workspace/segmentation_project/scripts:
+    dirs: []
+    files:
+      predict.py: "cmd = ['nnUNet_predict', '-t', '101']"
+
+  /workspace/segmentation_project/old:
+    dirs: []
+    files:
+      run_infer.sh: "nnUNetv2_predict -d Dataset101_Brain -o /workspace/data/predictions"
+

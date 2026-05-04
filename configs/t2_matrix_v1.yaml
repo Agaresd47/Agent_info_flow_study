@@ -1,0 +1,40 @@
+episodes:
+  - data/t2_episodes/test_ground/ep001_ct_mask_combine.yaml
+  - data/t2_episodes/test_ground/ep002_cxr14_healthy_extraction.yaml
+  - data/t2_episodes/test_ground/ep004_affine_propagation.yaml
+  - data/t2_episodes/test_ground/ep005_nnunet_dataset_json.yaml
+  - data/t2_episodes/test_ground/ep006_symlink_dataset_split.yaml
+
+pairs:
+  - label: haiku_x_qwen
+    planner:
+      label: haiku_4_5
+      provider: bedrock
+      model_id: us.anthropic.claude-haiku-4-5-20251001-v1:0
+    worker:
+      label: qwen3_coder_30b
+      provider: bedrock
+      model_id: qwen.qwen3-coder-30b-a3b-v1:0
+  - label: qwen_x_qwen
+    planner:
+      label: qwen3_coder_30b
+      provider: bedrock
+      model_id: qwen.qwen3-coder-30b-a3b-v1:0
+    worker:
+      label: qwen3_coder_30b
+      provider: bedrock
+      model_id: qwen.qwen3-coder-30b-a3b-v1:0
+
+condition: B1_guardrailed
+seeds: [0]
+seed_instructions:
+  0: "Prefer a concise but complete handoff."
+  1: "Prefer an implementation-oriented handoff with explicit risk and assumption bullets."
+
+judge_model: gpt-5.4-mini
+fail_on_leak: true
+rounds: 2
+max_planner_tokens: 2400
+max_worker_tokens: 1400
+max_judge_tokens: 2400
+out_dir: run_result/T2_pilot_V1/output

@@ -1,0 +1,34 @@
+{
+  "planner_constraint_coverage_score": 1,
+  "planner_risk_flagging_score": 2,
+  "worker_goal_alignment_score": 1,
+  "worker_missing_info_score": 2,
+  "worker_first_action_precision_score": 1,
+  "spec_score": 3,
+  "worker_score": 4,
+  "final_verdict": "spec_weak",
+  "covered_gold_constraints": [
+    "支持崩溃后续跑/恢复处理",
+    "按病人输出到独立目录",
+    "需要将多个结构合并为单个 mask",
+    "需要输出 real-intensity mask 和软组织相关结果",
+    "planner 明确提示了原子写入/检查点一类的风险控制"
+  ],
+  "missed_gold_constraints": [
+    "结构合并算子必须是 np.maximum，而不是 np.add",
+    "续跑判定必须基于 <output_root>/<patient_id>/.processing_done",
+    "结构选择必须使用正则模式而非硬编码完整列表",
+    "affine 和 header 应取自第一个被合并的 mask 文件",
+    "软组织 CT 应将结构区域填为 padding_value（默认 5）",
+    "real-intensity mask 的非 mask 区域应填 -999.9",
+    "并行粒度应是 patient，且单 patient 内串行"
+  ],
+  "forbidden_assumptions_made": [
+    "planner 将“completion marker”泛化为任意 .done/manifest，而不是明确 .processing_done",
+    "planner 把软组织输出描述为“保留原始 CT 或用定义值”，引入了未定默认",
+    "worker 将“resumption by checking explicit completion markers”泛化为未绑定具体文件的完成标记",
+    "worker 强化了 atomic writes，但未说明这是已知约束还是推断出的实现策略"
+  ],
+  "separation_notes": "这组样本能区分出是否真正保住了关键隐藏约束：强模型应当点明 np.maximum、.processing_done、正则选择和固定填充值；当前 planner/worker 都只给了泛化版恢复与输出说明，说明信息流丢失较明显。worker 至少识别出缺失信息并未假装方案已完整，因此优于盲写实现，但仍缺少核心实现约束。",
+  "concise_rationale": "Planner 提供了较高层次流程和风险提示，但把关键细节留成了泛化假设，没有保住多个 gold 约束；Worker 也正确指出了不少未定项，但同样没有补回 np.maximum、.processing_done、正则匹配和固定背景值等核心信息。整体属于弱规范传递，不足以直接安全实现。"
+}

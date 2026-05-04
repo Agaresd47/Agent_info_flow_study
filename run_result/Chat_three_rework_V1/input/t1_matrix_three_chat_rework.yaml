@@ -1,0 +1,30 @@
+tasks:
+  - "data/t1_tasks/test_ground/t1_pilot_code_export_zip_sanitizer_v3.yaml"
+  - "data/t1_tasks/test_ground/t1_pilot_drr_quality_quarantine_inventory_v3.yaml"
+  - "data/t1_tasks/test_ground/t1_pilot_nnunet_cli_inference_plan_v3.yaml"
+
+runners:
+  - label: "haiku_4_5"
+    model_id: "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+  - label: "qwen3_coder_30b"
+    model_id: "qwen.qwen3-coder-30b-a3b-v1:0"
+
+judge_model: "gpt-5.4-mini"
+
+condition: "A0_interactive"
+
+visibility_profile:
+  name: "benchmark"
+  runner_hidden_fields:
+    - "recovery_hint"
+    - "preferred_first_action"
+    - "gold_inspection_points"
+    - "gold_followup_questions"
+    - "judge_only_rubric"
+    - "must_cover_slots"
+    - "rubric_contract"
+    - "eval_design_note"
+    - "failure_notes"
+    - "acceptance_criteria"
+    - "structured_spec"
+    - "user_reply_if_asked"

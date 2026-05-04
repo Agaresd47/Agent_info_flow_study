@@ -1,0 +1,33 @@
+{
+  "planner_constraint_coverage_score": 1,
+  "planner_risk_flagging_score": 1,
+  "worker_goal_alignment_score": 1,
+  "worker_missing_info_score": 2,
+  "worker_first_action_precision_score": 1,
+  "spec_score": 4,
+  "worker_score": 5,
+  "final_verdict": "spec_weak",
+  "covered_gold_constraints": [
+    "Use symlinks rather than copies/hardlinks",
+    "Random split into train/test/validation at patient level",
+    "organ_list.txt is required to drive organ→part mapping",
+    "Need to create output directories and link DRR plus organ masks",
+    "Worker correctly identified the planner left several implementation details unspecified"
+  ],
+  "missed_gold_constraints": [
+    "Planner did not preserve the specific output layout under <output_root>/{set_folder}/{organ_lower}/{part}/<patient_id>.jpg",
+    "Planner did not capture the ct_no_bed symlink requirement in the output structure",
+    "Planner did not capture the per-organ suffix mismatch (Heart->_heart, others->_total)",
+    "Planner failed to state reproducible splitting via fixed seed or persisted split file as a concrete requirement",
+    "Planner failed to state missing parts must be logged to missing_parts.log without aborting",
+    "Planner did not state mkdir-if-missing for parent directories",
+    "Worker introduced nnU-Net imagesTr/labelsTr-style assumptions and NIfTI labels that are not grounded in the spec"
+  ],
+  "forbidden_assumptions_made": [
+    "Planner assumed a standard nnU-Net imagesTr/labelsTr/imagesTs/labelsTs/validation layout that was not specified and conflicts with the gold task",
+    "Worker assumed label aggregation into a single nnU-Net-compatible NIfTI file per organ, which was not specified",
+    "Worker assumed the output should use a standard nnU-Net directory structure instead of the requested organ/part symlink tree"
+  ],
+  "separation_notes": "The pair is separable because the planner exposed some real constraints but also injected a wrong canonical dataset layout, while the worker both preserved the high-level intent and clearly surfaced missing details. The worker also overcommitted to unsupported nnU-Net/label-format assumptions, which distinguishes strong spec-preservation from hallucinated implementation defaults.",
+  "concise_rationale": "Planner captured the core symlinked split idea but missed or distorted several critical constraints, especially the exact output tree, reproducible split requirement, and missing-parts logging. Worker correctly noted many unknowns, but also treated the handoff as if a full nnU-Net label pipeline were specified, adding unsupported assumptions. Overall: useful but weak spec fidelity."
+}

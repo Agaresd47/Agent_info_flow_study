@@ -1,0 +1,51 @@
+fixture_id: fixtures_t1_cli_symlink_split_idempotent_guarded
+workspace_root: /workspace/linkset
+
+files:
+  /workspace/linkset/organ_parts.json: |
+    {
+      "vessel": ["aorta.nii.gz"],
+      "heart": ["heart.nii.gz"]
+    }
+  /workspace/linkset/train.txt: |
+    patient001
+    patient003
+    patient006
+  /workspace/linkset/val.txt: |
+    patient002
+    patient003
+  /workspace/linkset/test.txt: |
+    ../escape_case
+    patient004
+  /workspace/linkset/source_masks/patient001/aorta.nii.gz: "MASK_STUB_patient001_aorta"
+  /workspace/linkset/source_masks/patient001/heart.nii.gz: "MASK_STUB_patient001_heart"
+  /workspace/linkset/source_masks/patient002/aorta.nii.gz: "MASK_STUB_patient002_aorta"
+  /workspace/linkset/source_masks/patient003/aorta.nii.gz: "MASK_STUB_patient003_aorta"
+  /workspace/linkset/source_masks/patient003/heart.nii.gz: "MASK_STUB_patient003_heart"
+  /workspace/linkset/source_masks/patient004/aorta.nii.gz: "MASK_STUB_patient004_aorta"
+  /workspace/linkset/source_masks/patient004/heart.nii.gz: "MASK_STUB_patient004_heart"
+  /workspace/linkset/source_masks/patient006/aorta.nii.gz: "MASK_STUB_patient006_aorta"
+  /workspace/linkset/source_masks/patient006/heart.nii.gz: "MASK_STUB_patient006_heart"
+  /workspace/linkset/out/train/patient006/heart.nii.gz: "REAL_FILE_CONFLICT_DO_NOT_OVERWRITE"
+
+initial_empty_dirs:
+  - /workspace/linkset/out/train/patient001
+  - /workspace/linkset/out/val
+  - /workspace/linkset/out/test
+
+symlinks:
+  /workspace/linkset/out/train/patient003/aorta.nii.gz: ../../../source_masks/patient003/aorta.nii.gz
+  /workspace/linkset/out/train/patient001/heart.nii.gz: ../../../source_masks/patient001/heart_OLD_MISSING.nii.gz
+
+oracle_notes:
+  duplicate_membership:
+    patient003: train_wins_over_val
+  incomplete_patients:
+    patient002:
+      - heart.nii.gz
+  invalid_split_entries:
+    - ../escape_case
+  broken_symlink_targets:
+    - /workspace/linkset/out/train/patient001/heart.nii.gz
+  real_file_conflicts:
+    - /workspace/linkset/out/train/patient006/heart.nii.gz

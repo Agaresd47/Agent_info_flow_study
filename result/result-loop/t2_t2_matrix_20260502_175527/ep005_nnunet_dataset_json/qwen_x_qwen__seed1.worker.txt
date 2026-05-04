@@ -1,0 +1,27 @@
+{
+  "understood_goal": "Generate a `dataset.json` file for an nnU-Net v2 dataset following the provided structure and metadata, specifically for the 'lung_lower_lobe_right' foreground class with 'DRR' modality.",
+  "constraints_to_follow": [
+    "The script must not modify existing files unless explicitly instructed.",
+    "The output `dataset.json` must be written to the root of the dataset folder.",
+    "The script must not assume any specific naming convention beyond what's provided (e.g., image/label suffixes).",
+    "No overwrite behavior is defined; if `dataset.json` already exists, the script should either fail or not proceed without confirmation.",
+    "The schema version of `dataset.json` is assumed to match nnU-Net v2 requirements.",
+    "The directory structure is complete and consistent with nnU-Net v2 expectations.",
+    "All training images and labels are located under `imagesTr/` and `labelsTr/`, respectively.",
+    "Test images are located under `imagesTs/`.",
+    "The modality key in `dataset.json` should be named `\"modality\"` and will contain a dictionary mapping modality names to their descriptions.",
+    "The foreground class name (`lung_lower_lobe_right`) is used directly as the key in the `labels` dictionary."
+  ],
+  "information_still_missing": [
+    "Whether the script should check for the existence of `imagesTr`, `labelsTr`, and `imagesTs` directories before proceeding.",
+    "A specific naming convention for image and label files (e.g., `.png`, `.nii.gz`).",
+    "The expected format for the `description` field in `dataset.json`.",
+    "Any additional metadata fields required in `dataset.json` beyond those specified.",
+    "How the script should handle cases where some files are missing or corrupted."
+  ],
+  "first_3_concrete_actions": [
+    "Verify that the dataset root directory contains the expected subdirectories: `imagesTr`, `labelsTr`, and `imagesTs`.",
+    "Determine the file naming convention for images and labels (e.g., extension type) by inspecting sample files if available.",
+    "Confirm whether the `dataset.json` file already exists and decide on appropriate handling (fail or prompt for overwrite)."
+  ]
+}

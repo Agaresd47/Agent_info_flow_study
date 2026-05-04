@@ -1,0 +1,44 @@
+fixture_id: t1_drr_quality_quarantine_inventory
+workspace_root: /data/drr_pipeline
+
+tree:
+  /data/drr_pipeline:
+    dirs:
+      - outputs
+      - quarantine
+    files:
+      report.csv: |
+        patient_id,series_id,ct_path,mask_path,quality_score,status
+        p001,s001,outputs/p001/s001_ct.nii.gz,outputs/p001/s001_mask.nii.gz,0.72,ready
+        p002,s002,outputs/p002/s002_ct.nii.gz,outputs/p002/s002_mask.nii.gz,0.95,ready
+        p003,s003,outputs/p003/s003_ct.nii.gz,,0.61,mask_missing
+
+  /data/drr_pipeline/outputs:
+    dirs:
+      - p001
+      - p002
+      - p003
+    files: {}
+
+  /data/drr_pipeline/outputs/p001:
+    dirs: []
+    files:
+      s001_ct.nii.gz: "CT1"
+      s001_mask.nii.gz: "MASK1"
+
+  /data/drr_pipeline/outputs/p002:
+    dirs: []
+    files:
+      s002_ct.nii.gz: "CT2"
+      s002_mask.nii.gz: "MASK2"
+
+  /data/drr_pipeline/outputs/p003:
+    dirs: []
+    files:
+      s003_ct.nii.gz: "CT3"
+
+  /data/drr_pipeline/quarantine:
+    dirs: []
+    files:
+      prior_review_manifest.json: "{}"
+

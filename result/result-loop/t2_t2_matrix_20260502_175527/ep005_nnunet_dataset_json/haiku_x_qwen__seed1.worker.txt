@@ -1,0 +1,26 @@
+{
+  "understood_goal": "Generate a valid nnU-Net v2 dataset.json file for a DRR lung lobe segmentation task, specifically for the right lung lower lobe, using the provided dataset structure and constraints.",
+  "constraints_to_follow": [
+    "The output must conform to the nnU-Net v2 dataset.json schema.",
+    "Only one foreground label class is allowed ('lung_lower_lobe_right' with value 1, background = 0).",
+    "The modality is DRR (Digital Radiography Reconstruction), which is a 2D projection modality.",
+    "The script must validate or assume the existence of three subdirectories: imagesTr/, labelsTr/, imagesTs/.",
+    "Training image/label pairs must be matched based on consistent naming conventions.",
+    "Test images in imagesTs/ do not have corresponding labels.",
+    "All file paths and names must follow nnU-Net v2 expected formats."
+  ],
+  "information_still_missing": [
+    "Exact file naming pattern and extensions used in imagesTr/, labelsTr/, and imagesTs/ directories.",
+    "Precise target output path where dataset.json should be written.",
+    "Behavior when dataset.json already exists (overwrite/skip/error).",
+    "Whether the foreground label value is definitively 1 or another integer.",
+    "Whether voxel spacing or geometric metadata should be extracted from image files.",
+    "If optional JSON fields such as license, description, or reference are required or desired.",
+    "Whether the script should validate that every image in imagesTr/ has a corresponding label in labelsTr/."
+  ],
+  "first_3_concrete_actions": [
+    "Inspect one example file from each of imagesTr/, labelsTr/, and imagesTs/ to determine the exact naming convention and file extensions.",
+    "Confirm the full target path for writing dataset.json (e.g., <dataset_root>/Dataset001_LungLobeRight/dataset.json).",
+    "Define clear behavior for handling the case where dataset.json already exists (skip, overwrite, or error)."
+  ]
+}

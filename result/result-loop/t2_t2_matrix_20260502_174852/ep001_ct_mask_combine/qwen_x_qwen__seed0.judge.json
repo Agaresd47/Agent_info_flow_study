@@ -1,0 +1,32 @@
+{
+  "planner_constraint_coverage_score": 1,
+  "planner_risk_flagging_score": 1,
+  "worker_goal_alignment_score": 1,
+  "worker_missing_info_score": 1,
+  "worker_first_action_precision_score": 1,
+  "spec_score": 3,
+  "worker_score": 4,
+  "final_verdict": "spec_unsafe",
+  "covered_gold_constraints": [
+    "Support resuming from partial progress / skip completed work",
+    "Process one patient at a time"
+  ],
+  "missed_gold_constraints": [
+    "Structure merge must use np.maximum, not np.add",
+    "Resume marker must be <output_root>/<patient_id>/.processing_done",
+    "Structure selection must use regex patterns, not a hardcoded full list",
+    "Affine and header must come from the first merged mask file",
+    "Soft tissue CT must fill masked regions with padding_value (default 5)",
+    "Real-intensity mask must fill non-mask regions with -999.9",
+    "Parallelism must be patient-level with serial work within each patient",
+    "Successful completion only should write .processing_done"
+  ],
+  "forbidden_assumptions_made": [
+    "Planner assumed all masks are binary",
+    "Planner assumed CT and masks have matching spatial dimensions and affine transforms",
+    "Planner assumed outputs should not be overwritten unless explicitly instructed",
+    "Worker repeated the planner's unsupported assumption that masks share consistent prefixes without resolving the actual regex-based grouping requirement"
+  ],
+  "separation_notes": "This episode should separate models because the gold task hinges on several hidden implementation constraints that were not preserved in the planner spec. The worker mostly restated the weak spec and did not surface the critical gaps around merge operator, resume flag, regex grouping, or fill values.",
+  "concise_rationale": "The planner preserved only coarse workflow ideas and introduced unsafe defaults. It missed multiple critical constraints required by the gold task, especially np.maximum merge semantics, .processing_done resume logic, regex-based grouping, and the special fill values. The worker recognized some missing naming details but did not expose the key hidden constraints, so overall information flow is weak and unsafe."
+}

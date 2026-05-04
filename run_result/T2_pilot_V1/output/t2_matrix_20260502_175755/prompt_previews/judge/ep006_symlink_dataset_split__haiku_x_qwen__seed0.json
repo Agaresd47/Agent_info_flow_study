@@ -1,0 +1,143 @@
+{
+  "episode_id": "ep006_symlink_dataset_split",
+  "condition": "B0_guardrailed",
+  "seed": 0,
+  "pair_label": "haiku_x_qwen",
+  "planner_label": "haiku_4_5",
+  "worker_label": "qwen3_coder_30b",
+  "planner_visible_request": "我有一批已经处理好的 DRR 图像和对应的多器官 mask（每个器官分多个 part），\n需要按 train/test/validation 拆分，并用符号链接的方式拼成 nnU-Net 风格的目录。\n\n输入根：<input_root>/\n  CT_no_bed/<patient_id>.jpg     （DRR 图像本身）\n  Heart/<patient_id>_heart/<part>.jpg\n  Lung/<patient_id>_total/<part>.jpg\n  Rib_clean/<patient_id>_total/<part>.jpg\n  Spine/<patient_id>_total/<part>.jpg\n  Bones/<patient_id>_total/<part>.jpg\n\n输出根：<output_root>/{train,test,validation}/...\n\n比例 8:1:1。\n要支持 organ→part 的多对多映射（part 列表存在 organ_list.txt）。\n",
+  "gold_task_goal": "随机按 8:1:1 把病人分成 train/test/validation，\n对每个病人，按 organ_list.txt 列出的 organ-part 结构，\n在 <output_root>/{set_folder}/{organ_lower}/{part}/<patient_id>.jpg 下创建符号链接，\n指向 <input_root>/{Organ_capitalized}/{patient_id}{organ_suffix}/{part}.jpg。\n缺失的 part 写入 missing_parts.log，不中断。\n",
+  "gold_constraints": [
+    "动作是 os.symlink，不是 copy / hardlink",
+    "organ→suffix 的映射不一致：Heart→'_heart'，其余四个→'_total'",
+    "train/test/validation 分配必须可复现——使用固定 random seed 或预先持久化 split 文件",
+    "split 结果同时写到 train.txt / test.txt / validation.txt",
+    "ct_no_bed 本身也要在 <output_root>/{set_folder}/ct_no_bed/<patient_id>.jpg 下建链",
+    "目标父目录不存在时自动 mkdir",
+    "源文件不存在时跳过并记录到 missing_parts，不报错",
+    "病人级并行"
+  ],
+  "gold_relevant_files": [
+    "<workspace>/organ_list.txt",
+    "<input_root>/CT_no_bed/",
+    "<input_root>/{Heart,Lung,Rib_clean,Spine,Bones}/",
+    "<output_root>/{train,test,validation}/",
+    "<output_root>/train.txt",
+    "<output_root>/test.txt",
+    "<output_root>/validation.txt",
+    "<output_root>/missing_parts.log"
+  ],
+  "judge_only_rubric": {
+    "critical_constraints_min_for_acceptable": 3,
+    "critical_constraints_min_for_strong": 5,
+    "score_caps": {
+      "max_spec_score_if_no_gold_constraint_captured": 3,
+      "max_spec_score_if_forbidden_assumption_introduced": 5,
+      "max_worker_score_if_missing_info_empty_under_weak_spec": 6
+    },
+    "positive_signals": [
+      "Planner states concrete constraints rather than delegating them vaguely.",
+      "Planner flags unresolved choices and unsafe/destructive operations.",
+      "Worker preserves the planner intent while identifying missing implementation details."
+    ],
+    "negative_signals": [
+      "Planner introduces a convenient but wrong default.",
+      "Worker treats an underspecified handoff as complete.",
+      "Worker first actions target files or schemas not grounded in the planner spec."
+    ]
+  },
+  "episode_gold_extras": {
+    "gold_organ_suffix_map": {
+      "Heart": "_heart",
+      "Lung": "_total",
+      "Rib_clean": "_total",
+      "Spine": "_total",
+      "Bones": "_total"
+    },
+    "gold_organ_list_format": "[Heart]\nheart_atrium_left\nheart_atrium_right\nheart_ventricle_left\nheart_ventricle_right\nheart_myocardium\n\n[Lung]\nlung_upper_lobe_left\nlung_upper_lobe_right\nlung_middle_lobe_right\nlung_lower_lobe_left\nlung_lower_lobe_right\n\n[Spine]\nvertebrae_T2\nvertebrae_T3\n...\n"
+  },
+  "expected_v1_pitfalls": [
+    "Omit or blur critical constraint: 动作是 os.symlink，不是 copy / hardlink",
+    "Omit or blur critical constraint: organ→suffix 的映射不一致：Heart→'_heart'，其余四个→'_total'",
+    "Omit or blur critical constraint: train/test/validation 分配必须可复现——使用固定 random seed 或预先持久化 split 文件"
+  ],
+  "decoys": [
+    "Worker may fill in a plausible implementation default that the planner did not actually specify.",
+    "Worker may treat a visible path or schema summary as complete when it is only partial."
+  ],
+  "forbidden_assumptions": [
+    "Do not infer hidden file naming, merge semantics, resume markers, or destructive write policy unless the planner spec states them."
+  ],
+  "planner_response_text": "# Implementation Spec: nnU-Net Dataset Assembly with Symlink-Based Split\n\n## Overview\nAssemble a multi-organ medical imaging dataset from pre-processed DRR images and organ-specific masks, split into train/test/validation sets (8:1:1 ratio), and organize via symlinks into nnU-Net directory structure.\n\n---\n\n## Input Contract\n\n### Source Directory Structure\n```\n<input_root>/\n├── CT_no_bed/\n│   └── <patient_id>.jpg                    (DRR image)\n├── Heart/\n│   └── <patient_id>_heart/\n│       └── <part>.jpg                      (one or more parts)\n├── Lung/\n│   └── <patient_id>_total/\n│       └── <part>.jpg\n├── Rib_clean/\n│   └── <patient_id>_total/\n│       └── <part>.jpg\n├── Spine/\n│   └── <patient_id>_total/\n│       └── <part>.jpg\n├── Bones/\n│   └── <patient_id>_total/\n│       └── <part>.jpg\n└── organ_list.txt                          (organ→part mapping)\n```\n\n### organ_list.txt Format\n- **Location:** `<input_root>/organ_list.txt`\n- **Content:** Defines which parts belong to each organ (exact schema not specified)\n- **Usage:** Enables multi-part aggregation per organ per patient\n\n### Patient ID Extraction\n- Patient IDs are derived from filenames in `CT_no_bed/` (stem before `.jpg`)\n- Organ subdirectories use naming convention: `<patient_id>_<organ_suffix>` or `<patient_id>_total`\n- **Open question:** Exact matching rule between `CT_no_bed/<patient_id>.jpg` and organ subdirectory names\n\n---\n\n## Output Contract\n\n### Directory Structure (nnU-Net Style)\n```\n<output_root>/\n├── train/\n│   ├── imagesTr/\n│   │   └── <case_id>_0000.jpg              (DRR image)\n│   └── labelsTr/\n│       └── <case_id>.nii.gz                (or other format?)\n├── test/\n│   ├── imagesTs/\n│   │   └── <case_id>_0000.jpg\n│   └── labelsTs/\n│       └── <case_id>.nii.gz\n└── validation/\n    ├── imagesVal/\n    │   └── <case_id>_0000.jpg\n    └── labelsVal/\n        └── <case_id>.nii.gz\n```\n\n### Case ID Naming\n- **Open question:** How to map `<patient_id>` to `<case_id>` (e.g., zero-padded, sequential, or preserved as-is)?\n\n### Label Organization\n- **Open question:** How are multi-part masks combined per organ?\n  - Stacked channels?\n  - Separate files per part?\n  - Merged into single segmentation volume?\n- **Open question:** Output format for labels (`.nii.gz`, `.npy`, `.jpg`, etc.)?\n\n---\n\n## Split Logic\n\n### Ratio\n- Train: 80% (8 parts)\n- Test: 10% (1 part)\n- Validation: 10% (1 part)\n\n### Randomization\n- **Open question:** Is a fixed random seed required for reproducibility?\n- **Open question:** Should split be stratified by any attribute (e.g., organ coverage)?\n\n### Patient-Level vs. Sample-Level\n- **Assumption:** Split is at patient level (all images/masks for one patient go to same split)\n- **Open question:** If a patient has multiple organs, do all organs go to the same split?\n\n---\n\n## Symlink Strategy\n\n### Symlink vs. Copy\n- **Constraint:** Use symlinks, not file copies\n- **Assumption:** Symlinks point from output structure back to `<input_root>` originals\n- **Open question:** Relative or absolute symlink paths?\n- **Open question:** Symlink target for multi-part masks (single link per organ, or per part)?\n\n### Write Safety\n- **Open question:** If output directories already exist, should the worker:\n  - Fail with error?\n  - Remove and recreate?\n  - Skip existing symlinks?\n  - Validate and merge?\n\n---\n\n## Data Validation & Error Handling\n\n### Missing Data\n- **Open question:** If a patient has a DRR image but no masks for any organ, should it be:\n  - Skipped?\n  - Included with empty labels?\n  - Treated as error?\n- **Open question:** If a patient has masks but no DRR image, should it be skipped or error?\n\n### Organ Coverage\n- **Open question:** Must every patient have masks for all organs, or is partial coverage allowed?\n\n### File Integrity\n- **Open question:** Should the worker validate that symlink targets exist before creating links?\n\n---\n\n## First Actions for Worker\n\n1. **Enumerate patients:** Scan `<input_root>/CT_no_bed/` to extract all unique `<patient_id>` values.\n2. **Load organ mapping:** Parse `<input_root>/organ_list.txt` to understand organ→part relationships.\n3. **Validate input coverage:** For each patient, verify presence of DRR image and organ mask directories.\n4. **Perform split:** Partition patient list into train/test/validation (8:1:1) using specified randomization method.\n5. **Create output structure:** Initialize `<output_root>/{train,test,validation}/{imagesTr,labelsTr,imagesTs,labelsTs,imagesVal,labelsVal}` directories.\n6. **Generate symlinks:** For each patient in each split, create symlinks from output structure to input files.\n7. **Log completion:** Record which patients went to which split and any skipped/errored cases.\n\n---\n\n## Constraints & Risks\n\n| Constraint | Impact |\n|-----------|--------|\n| Symlinks only (no copies) | Disk space efficient but requires stable input path; broken links if input moves |\n| 8:1:1 split ratio | Must handle rounding for small datasets (e.g., 10 patients → 8/1/1) |\n| Multi-part organ masks | Aggregation logic must be deterministic and documented |\n| nnU-Net naming convention | Case IDs and channel suffixes (`_0000`) are strict |\n| organ_list.txt dependency | Worker cannot proceed without valid mapping file |\n\n### Risks\n- **Symlink breakage:** If input root is moved/deleted, all output symlinks become invalid.\n- **Incomplete patient data:** Partial organ coverage could create asymmetric datasets.\n- **Naming collisions:** If case ID derivation is not unique, symlinks may overwrite.\n- **Split reproducibility:** Without fixed seed, splits may differ across runs.\n\n---\n\n```json\n{\n  \"assumptions\": [\n    \"Split is at patient level (all data for one patient goes to same split)\",\n    \"Patient IDs are uniquely extractable from CT_no_bed/ filenames\",\n    \"organ_list.txt exists and is parseable\",\n    \"Symlinks should point from output back to input_root originals\",\n    \"nnU-Net directory structure uses standard naming (imagesTr, labelsTr, imagesTs, labelsTs, imagesVal, labelsVal)\",\n    \"DRR images are the only input images (one per patient, channel 0000)\"\n  ],\n  \"risks\": [\n    \"Symlink targets become invalid if input_root is moved or deleted\",\n    \"No specification for handling patients with partial organ coverage\",\n    \"Rounding behavior for 8:1:1 split on non-divisible patient counts is undefined\",\n    \"Multi-part mask aggregation logic not specified (stacking, merging, separate files?)\",\n    \"Output label format not specified (.nii.gz, .npy, .jpg, etc.)\",\n    \"No write-safety policy defined (overwrite, skip, error on existing output?)\",\n    \"Case ID derivation from patient ID not specified (could cause collisions)\",\n    \"Symlink path style (relative vs. absolute) not specified\"\n  ],\n  \"open_questions\": [\n    \"What is the exact schema and location of organ_list.txt?\",\n    \"How should multi-part masks per organ be combined into a single label file?\",\n    \"What is the output format for labels (NIfTI, NumPy, JPEG, etc.)?\",\n    \"How should patient IDs be mapped to case IDs for nnU-Net naming?\",\n    \"Should symlinks be relative or absolute paths?\",\n    \"Is a fixed random seed required for reproducible splits?\",\n    \"What should happen if a patient has DRR but no organ masks, or vice versa?\",\n    \"What is the rounding rule for 8:1:1 split when patient count is not divisible by 10?\",\n    \"Should the worker validate symlink targets exist before creating links?\",\n    \"What is the policy if output directories already exist (fail, overwrite, skip, merge)?\"\n  ]\n}\n```",
+  "worker_response_text": "{\n  \"understood_goal\": \"Assemble a multi-organ medical imaging dataset from pre-processed DRR images and organ-specific masks, split into train/test/validation sets (8:1:1 ratio), and organize via symlinks into nnU-Net directory structure.\",\n  \"constraints_to_follow\": [\n    \"Use symlinks only, not file copies\",\n    \"Split patients into train/test/validation sets with an 8:1:1 ratio\",\n    \"Organize output in nnU-Net standard directory structure\",\n    \"Patient-level splitting (all data for one patient goes to same split)\",\n    \"DRR images must be named as <patient_id>.jpg in CT_no_bed/\",\n    \"Organ mask directories follow naming convention <patient_id>_<organ_suffix> or <patient_id>_total\",\n    \"Use a fixed random seed for reproducible splits\",\n    \"Ensure symlinks point from output structure back to original files in input_root\",\n    \"Handle multi-part organ masks by aggregating them into a single label file per organ\",\n    \"Label files must be in a format compatible with nnU-Net (e.g., NIfTI)\"\n  ],\n  \"information_still_missing\": [\n    \"Exact schema and content format of organ_list.txt\",\n    \"How multi-part masks per organ should be combined into a single label file (stacking, merging, separate files?)\",\n    \"Output label format (e.g., .nii.gz, .npy, .jpg)\",\n    \"Mapping rule from patient ID to case ID for nnU-Net naming convention\",\n    \"Whether symlinks should use relative or absolute paths\",\n    \"Policy for handling patients with DRR but no organ masks, or vice versa\",\n    \"Rounding behavior for 8:1:1 split when patient count is not divisible by 10\",\n    \"Write safety policy for existing output directories (fail, overwrite, skip, merge?)\",\n    \"Validation policy for symlink targets before creating links\",\n    \"Whether the split should be stratified by any attribute (e.g., organ coverage)\"\n  ],\n  \"first_3_concrete_actions\": [\n    \"Enumerate all unique patient IDs from filenames in <input_root>/CT_no_bed/\",\n    \"Parse <input_root>/organ_list.txt to determine organ→part mappings\",\n    \"Validate that each patient has corresponding DRR image and organ mask directories before proceeding with split assignment\"\n  ]\n}",
+  "worker_response_json": {
+    "understood_goal": "Assemble a multi-organ medical imaging dataset from pre-processed DRR images and organ-specific masks, split into train/test/validation sets (8:1:1 ratio), and organize via symlinks into nnU-Net directory structure.",
+    "constraints_to_follow": [
+      "Use symlinks only, not file copies",
+      "Split patients into train/test/validation sets with an 8:1:1 ratio",
+      "Organize output in nnU-Net standard directory structure",
+      "Patient-level splitting (all data for one patient goes to same split)",
+      "DRR images must be named as <patient_id>.jpg in CT_no_bed/",
+      "Organ mask directories follow naming convention <patient_id>_<organ_suffix> or <patient_id>_total",
+      "Use a fixed random seed for reproducible splits",
+      "Ensure symlinks point from output structure back to original files in input_root",
+      "Handle multi-part organ masks by aggregating them into a single label file per organ",
+      "Label files must be in a format compatible with nnU-Net (e.g., NIfTI)"
+    ],
+    "information_still_missing": [
+      "Exact schema and content format of organ_list.txt",
+      "How multi-part masks per organ should be combined into a single label file (stacking, merging, separate files?)",
+      "Output label format (e.g., .nii.gz, .npy, .jpg)",
+      "Mapping rule from patient ID to case ID for nnU-Net naming convention",
+      "Whether symlinks should use relative or absolute paths",
+      "Policy for handling patients with DRR but no organ masks, or vice versa",
+      "Rounding behavior for 8:1:1 split when patient count is not divisible by 10",
+      "Write safety policy for existing output directories (fail, overwrite, skip, merge?)",
+      "Validation policy for symlink targets before creating links",
+      "Whether the split should be stratified by any attribute (e.g., organ coverage)"
+    ],
+    "first_3_concrete_actions": [
+      "Enumerate all unique patient IDs from filenames in <input_root>/CT_no_bed/",
+      "Parse <input_root>/organ_list.txt to determine organ→part mappings",
+      "Validate that each patient has corresponding DRR image and organ mask directories before proceeding with split assignment"
+    ]
+  },
+  "deterministic_contract_checks": {
+    "planner_non_empty": true,
+    "planner_has_json_tail": false,
+    "worker_json_parse_ok": true,
+    "worker_required_fields_present": true,
+    "violations": [
+      "planner_json_tail_missing_or_invalid"
+    ]
+  },
+  "judge_instructions": [
+    "Evaluate information flow, not whether final code was produced.",
+    "Planner constraint coverage must be judged against gold_constraints that are reasonably inferable from the visible request; do not require impossible hidden details unless the episode rubric marks them critical.",
+    "Penalize planner false confidence when it gives worker a concrete wrong default instead of flagging a missing detail.",
+    "Reward worker output when it correctly flags missing information caused by a weak planner spec.",
+    "Score each dimension 0-2 and total to 0-10.",
+    "Return strict JSON only."
+  ],
+  "output_schema": {
+    "planner_constraint_coverage_score": "0-2",
+    "planner_risk_flagging_score": "0-2",
+    "worker_goal_alignment_score": "0-2",
+    "worker_missing_info_score": "0-2",
+    "worker_first_action_precision_score": "0-2",
+    "spec_score": "0-10",
+    "worker_score": "0-10",
+    "final_verdict": "spec_strong | spec_acceptable | spec_weak | spec_unsafe",
+    "covered_gold_constraints": [
+      "gold constraints captured by planner or worker"
+    ],
+    "missed_gold_constraints": [
+      "important gold constraints omitted or mishandled"
+    ],
+    "forbidden_assumptions_made": [
+      "wrong assumptions made by planner or worker"
+    ],
+    "separation_notes": "why this cell should or should not separate models",
+    "concise_rationale": "short evidence-based explanation"
+  }
+}

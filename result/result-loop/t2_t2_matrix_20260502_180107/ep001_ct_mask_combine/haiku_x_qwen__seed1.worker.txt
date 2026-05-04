@@ -1,0 +1,33 @@
+{
+  "understood_goal": "Process patient CT scans and TotalSeg masks to generate grouped structure masks, real-intensity masks, and a soft-tissue CT output, supporting resumption and parallel execution.",
+  "constraints_to_follow": [
+    "Each CT file is a single 3D NIfTI volume with Hounsfield-like intensity values.",
+    "Each mask file is binary (0 or 1) and spatially aligned with the CT.",
+    "Mask grouping uses logical OR (union) semantics based on filename prefix matching.",
+    "Worker runs independently per patient with no shared state across machines.",
+    "Output directory structure is flat (one patient_id per output_root subdirectory).",
+    "Resumption is based on checking for a completion marker or output file presence.",
+    "NIfTI I/O library (e.g., nibabel, SimpleITK) is available.",
+    "Worker must support resumption after failure and prioritize throughput for multi-machine parallel execution."
+  ],
+  "information_still_missing": [
+    "How are structure-to-group mappings defined? (Fixed file? Filename pattern inference? Canonical list?)",
+    "What intensity value should fill non-mask regions in real-intensity masks?",
+    "What intensity value should represent soft-tissue background in the soft-tissue CT output?",
+    "What format and content should the completion marker use?",
+    "How should the worker detect if a patient has already been successfully processed?",
+    "If processing fails mid-patient, should outputs be deleted, left in place, or resumed from last checkpoint?",
+    "Is atomic write (temp → final) required, or is direct overwrite acceptable?",
+    "Should there be a locking mechanism to prevent concurrent processing of the same patient across machines?",
+    "If CT and mask spatial dimensions differ, should the worker resample, fail, or use a specific strategy?",
+    "Should the worker process one patient per invocation or batch multiple patients?",
+    "What is the required logging format and destination (stdout, file, structured JSON)?",
+    "Are there structures that should NOT be grouped (singletons)?",
+    "How should the worker handle missing expected structures or unmatched filenames?"
+  ],
+  "first_3_concrete_actions": [
+    "Define a canonical list of structure-to-group mappings based on the TotalSeg naming convention and confirm with domain experts or documentation.",
+    "Specify default background fill values for real-intensity masks (e.g., -1000 HU for air) and soft-tissue background (e.g., 40 HU for muscle), ensuring they align with typical CT conventions.",
+    "Design a completion marker format (e.g., empty file named '.completion_marker') and define resumption logic to check for its existence or full output presence before skipping processing."
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "understood_goal": "Generate a valid nnU-Net v2 dataset.json file for a given dataset directory that contains DRR images and corresponding lung lobe segmentation labels, ensuring compatibility with nnU-Net's expected schema and handling the specific characteristics of DRR imaging.",
+  "constraints_to_follow": [
+    "The output dataset.json must conform exactly to nnU-Net v2's expected schema.",
+    "The script must not make irreversible changes until the final step of writing dataset.json.",
+    "All file discovery must be robust and handle potential variations in naming or extensions.",
+    "Label values and image modalities must be determined from actual sample files rather than assumed.",
+    "The script must write the dataset.json to <dataset_root>/dataset.json.",
+    "DRR modality is non-standard; any implications for preprocessing must be handled carefully.",
+    "No validation or error recovery is built into the script itself—errors will surface later in nnU-Net pipeline."
+  ],
+  "information_still_missing": [
+    "The exact integer value used to represent the foreground class in the label files.",
+    "The actual file extensions of the image and label files (e.g., .nii.gz, .nii).",
+    "The intensity range of the DRR images.",
+    "Whether DRR images are truly single-channel or contain multiple reconstructions.",
+    "Confirmation that the script targets nnU-Net v2 exclusively and not v1.",
+    "Whether the script should validate matching case counts between imagesTr/ and labelsTr/ directories."
+  ],
+  "first_3_concrete_actions": [
+    "Inspect one sample image and one sample label file from the dataset to determine their actual file extensions, label value(s), and image properties such as shape and intensity range.",
+    "Define the complete nnU-Net v2 dataset.json schema including all required keys and structure to ensure compliance.",
+    "Implement a robust file discovery mechanism to enumerate all training cases in imagesTr/ and labelsTr/, accounting for possible variations in file naming or extension."
+  ]
+}

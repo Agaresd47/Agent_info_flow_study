@@ -1,0 +1,24 @@
+{
+  "condition": "B0_guardrailed",
+  "seed": 0,
+  "episode_id": "ep004_affine_propagation",
+  "planner_spec": "### Implementation Plan: Affine Alignment Worker\n\n#### Observed Facts:\n- The task involves correcting affine transformations in medical imaging data (CT scans and masks).\n- Each patient has a directory with `ct.nii.gz` and multiple mask files.\n- The issue arises due to inconsistent signs in QR decomposition of affine matrices.\n- The goal is to align all mask affines to match the reference CT affine after cleaning.\n\n#### Assumptions:\n- All input directories follow a consistent structure where `ct.nii.gz` exists and other mask files are present.\n- The `ct.nii.gz` file contains a valid affine matrix.\n- Mask files are in NIfTI format (`*.nii.gz`) and have corresponding affine matrices.\n- QR decomposition is used to clean the affine matrix by removing rotational noise while preserving spacing.\n- Symbol alignment refers to ensuring that the sign of the rotation components matches between the cleaned affine and the original CT affine.\n\n#### Constraints:\n- Must preserve original data integrity; no destructive writes unless explicitly allowed.\n- Parallel processing is required across ~3000 patients.\n- No overwrite policy or resume marker is defined — must be handled carefully.\n- File naming convention for masks is not specified — must be inferred or queried.\n- Schema version or metadata format for NIfTI files is not specified — must be assumed compatible with standard libraries like NiBabel.\n\n#### Missing Information:\n- Exact file path pattern for mask files (e.g., do they all end in `_mask.nii.gz`?).\n- Whether there's a specific naming convention for mask files beyond general `.nii.gz`.\n- Policy on how to handle cases where a mask does not exist or cannot be read.\n- Whether the worker should generate a log or report of processed patients.\n- Definition of “cleaned” affine — e.g., what constitutes acceptable deviation from the original affine during QR cleanup.\n- Whether the worker needs to validate that the output affines result in aligned spatial coordinates post-transformation.\n\n---\n\n```json\n{\n  \"assumptions\": [\n    \"All patient directories contain a `ct.nii.gz` file and other mask files in NIfTI format.\",\n    \"QR decomposition will remove rotational noise without altering spacing.\",\n    \"Symbol alignment means matching the sign of each component of the rotation matrix.\"\n  ],\n  \"risks\": [\n    \"Overwriting original mask files if not handled carefully.\",\n    \"Incorrect handling of affine matrices could lead to misalignment or data corruption.\",\n    \"Parallel execution may cause race conditions if not properly synchronized.\"\n  ],\n  \"open_questions\": [\n    \"What is the exact naming convention for mask files?\",\n    \"Is there a defined policy for handling missing or unreadable mask files?\",\n    \"Should the worker produce logs or reports of its operations?\",\n    \"How should the worker determine which affine matrix is considered 'correct' for symbol alignment?\",\n    \"Are there any schema rules or metadata formats that must be preserved?\"\n  ]\n}\n```",
+  "task": "Interpret the planner spec. Do not use outside knowledge except general engineering caution.",
+  "output_schema": {
+    "understood_goal": "string",
+    "constraints_to_follow": [
+      "specific constraints stated or strongly implied by the planner spec"
+    ],
+    "information_still_missing": [
+      "missing information that blocks safe implementation"
+    ],
+    "first_3_concrete_actions": [
+      "the first three actions you would take before writing final code"
+    ]
+  },
+  "instructions": [
+    "Return strict JSON only.",
+    "If the planner spec omits something important, put it in information_still_missing instead of inventing it.",
+    "Do not assume hidden dataset schema, file naming, algorithm details, or safety policy."
+  ]
+}

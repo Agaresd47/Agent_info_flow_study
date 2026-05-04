@@ -1,0 +1,41 @@
+{
+  "planner_constraint_coverage_score": 1,
+  "planner_risk_flagging_score": 1,
+  "worker_goal_alignment_score": 2,
+  "worker_missing_info_score": 2,
+  "worker_first_action_precision_score": 1,
+  "spec_score": 4,
+  "worker_score": 7,
+  "handoff_performance_score": 5,
+  "final_verdict": "spec_weak",
+  "covered_or_flagged_constraints": [
+    "Planner flagged that the nnU-Net v2 schema needs verification instead of silently assuming everything.",
+    "Planner explicitly raised the open question of whether test cases from imagesTs/ belong in dataset.json.",
+    "Planner explicitly raised the open question of path representation format.",
+    "Worker preserved the planner intent and clearly listed unresolved implementation details rather than pretending the handoff was complete.",
+    "Worker identified the need to validate case-id pairing and fail loudly on mismatches."
+  ],
+  "covered_gold_constraints": [
+    "Single foreground class is identified as lung_lower_lobe_right.",
+    "Modality is identified as DRR, not CT.",
+    "Training image and label pairing by case ID is recognized as required.",
+    "imagesTs exists and is treated as a separate directory to inspect.",
+    "Worker correctly exposed that test inclusion in JSON is unresolved.",
+    "Worker correctly exposed that path format is unresolved."
+  ],
+  "missed_gold_constraints": [
+    "Planner did not preserve the exact nnU-Net v2 schema details for channel_name, labels, numTraining, numTest, file_ending, training, and test.",
+    "Planner introduced an unsafe/incorrect default by describing label mapping as index-to-name instead of name-to-index style required by v2.",
+    "Planner did not clearly state that training image paths should be relative './imagesTr/...' and labels './labelsTr/...'.",
+    "Planner did not state that training images are named '<case_id>_0000.nii.gz' and labels '<case_id>.nii.gz'.",
+    "Planner did not state that file_ending must be present and tensorImageSize must be omitted.",
+    "Planner treated file suffix handling as broadly variable instead of grounding the .nii.gz convention required by the task."
+  ],
+  "forbidden_assumptions_made": [
+    "Planner assumed label mapping should be expressed as index-to-name style example, which conflicts with the required v2 schema.",
+    "Planner assumed broad file suffix variability (.nii.gz, .nii, .mha) without support from the spec.",
+    "Planner suggested overwrite/skip/error policy as an active requirement even though the planner request did not specify write policy."
+  ],
+  "separation_notes": "This episode separates models on schema fidelity versus cautious uncertainty handling. A strong planner would have preserved the v2-specific dataset.json contract and exact file naming/path conventions, while a weaker planner either invents defaults or leaves critical schema details too vague. The worker scored well because it surfaced the missing details instead of pretending the handoff was complete.",
+  "concise_rationale": "The planner partially captured the task goal and pairing requirement, but missed most v2-specific dataset.json details and introduced at least one wrong default about labels/schema. The worker did the right thing by preserving intent and explicitly listing unresolved implementation details, so the handoff is usable but not strong."
+}

@@ -1,0 +1,271 @@
+{
+  "generated_at": "20260502_182026",
+  "status": "dry_run",
+  "workspace_root": "C:\\Users\\agares\\OneDrive\\0 求职\\面试\\Agent_info_flow",
+  "condition": "B0_guardrailed",
+  "episode_count": 1,
+  "pairs": [
+    {
+      "label": "haiku_x_qwen",
+      "planner": {
+        "label": "haiku_4_5",
+        "provider": "bedrock",
+        "model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+      },
+      "worker": {
+        "label": "qwen3_coder_30b",
+        "provider": "bedrock",
+        "model_id": "qwen.qwen3-coder-30b-a3b-v1:0"
+      }
+    },
+    {
+      "label": "qwen_x_qwen",
+      "planner": {
+        "label": "qwen3_coder_30b",
+        "provider": "bedrock",
+        "model_id": "qwen.qwen3-coder-30b-a3b-v1:0"
+      },
+      "worker": {
+        "label": "qwen3_coder_30b",
+        "provider": "bedrock",
+        "model_id": "qwen.qwen3-coder-30b-a3b-v1:0"
+      }
+    },
+    {
+      "label": "glm_x_qwen",
+      "planner": {
+        "label": "glm_4_7_flash",
+        "provider": "bedrock",
+        "model_id": "zai.glm-4.7-flash"
+      },
+      "worker": {
+        "label": "qwen3_coder_30b",
+        "provider": "bedrock",
+        "model_id": "qwen.qwen3-coder-30b-a3b-v1:0"
+      }
+    },
+    {
+      "label": "kimi_x_qwen",
+      "planner": {
+        "label": "kimi_k2_5",
+        "provider": "bedrock",
+        "model_id": "moonshotai.kimi-k2.5"
+      },
+      "worker": {
+        "label": "qwen3_coder_30b",
+        "provider": "bedrock",
+        "model_id": "qwen.qwen3-coder-30b-a3b-v1:0"
+      }
+    }
+  ],
+  "seeds": [
+    0
+  ],
+  "judge_model": "gpt-5.4-mini",
+  "region": "us-east-2",
+  "profile": null,
+  "warnings": [],
+  "validation_errors": [],
+  "records": [
+    {
+      "episode_yaml": "C:\\Users\\agares\\OneDrive\\0 求职\\面试\\Agent_info_flow\\data\\t2_episodes\\test_ground\\ep005_nnunet_dataset_json.yaml",
+      "judge_yaml": "C:\\Users\\agares\\OneDrive\\0 求职\\面试\\Agent_info_flow\\data\\t2_episodes\\test_ground\\judges\\ep005_nnunet_dataset_json.judge.yaml",
+      "episode_id": "ep005_nnunet_dataset_json",
+      "condition": "B0_guardrailed",
+      "seed": 0,
+      "pair_label": "haiku_x_qwen",
+      "planner_label": "haiku_4_5",
+      "planner_model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+      "worker_label": "qwen3_coder_30b",
+      "worker_model_id": "qwen.qwen3-coder-30b-a3b-v1:0",
+      "planner_prompt_leak_paths": [],
+      "worker_prompt_leak_paths": [],
+      "planner_response_text": "DRY_RUN planner spec.\n\n```json\n{\"assumptions\":[],\"risks\":[],\"open_questions\":[]}\n```",
+      "planner_usage": {},
+      "worker_response_text": "{\"understood_goal\":\"DRY_RUN\",\"constraints_to_follow\":[],\"information_still_missing\":[],\"first_3_concrete_actions\":[]}",
+      "worker_response_json": {
+        "understood_goal": "DRY_RUN",
+        "constraints_to_follow": [],
+        "information_still_missing": [],
+        "first_3_concrete_actions": []
+      },
+      "worker_usage": {},
+      "deterministic_contract_checks": {
+        "planner_non_empty": true,
+        "planner_has_json_tail": true,
+        "worker_json_parse_ok": true,
+        "worker_required_fields_present": true,
+        "violations": []
+      },
+      "judge_model": "gpt-5.4-mini",
+      "judge_response_text": "{\"planner_constraint_coverage_score\":0,\"planner_risk_flagging_score\":0,\"worker_goal_alignment_score\":0,\"worker_missing_info_score\":0,\"worker_first_action_precision_score\":0,\"spec_score\":0,\"worker_score\":0,\"final_verdict\":\"spec_weak\",\"covered_gold_constraints\":[],\"missed_gold_constraints\":[],\"forbidden_assumptions_made\":[],\"separation_notes\":\"DRY_RUN\",\"concise_rationale\":\"DRY_RUN\"}",
+      "judge_response_json": {
+        "planner_constraint_coverage_score": 0,
+        "planner_risk_flagging_score": 0,
+        "worker_goal_alignment_score": 0,
+        "worker_missing_info_score": 0,
+        "worker_first_action_precision_score": 0,
+        "spec_score": 0,
+        "worker_score": 0,
+        "final_verdict": "spec_weak",
+        "covered_gold_constraints": [],
+        "missed_gold_constraints": [],
+        "forbidden_assumptions_made": [],
+        "separation_notes": "DRY_RUN",
+        "concise_rationale": "DRY_RUN"
+      },
+      "judge_usage": {},
+      "elapsed_s": 0.004
+    },
+    {
+      "episode_yaml": "C:\\Users\\agares\\OneDrive\\0 求职\\面试\\Agent_info_flow\\data\\t2_episodes\\test_ground\\ep005_nnunet_dataset_json.yaml",
+      "judge_yaml": "C:\\Users\\agares\\OneDrive\\0 求职\\面试\\Agent_info_flow\\data\\t2_episodes\\test_ground\\judges\\ep005_nnunet_dataset_json.judge.yaml",
+      "episode_id": "ep005_nnunet_dataset_json",
+      "condition": "B0_guardrailed",
+      "seed": 0,
+      "pair_label": "qwen_x_qwen",
+      "planner_label": "qwen3_coder_30b",
+      "planner_model_id": "qwen.qwen3-coder-30b-a3b-v1:0",
+      "worker_label": "qwen3_coder_30b",
+      "worker_model_id": "qwen.qwen3-coder-30b-a3b-v1:0",
+      "planner_prompt_leak_paths": [],
+      "worker_prompt_leak_paths": [],
+      "planner_response_text": "DRY_RUN planner spec.\n\n```json\n{\"assumptions\":[],\"risks\":[],\"open_questions\":[]}\n```",
+      "planner_usage": {},
+      "worker_response_text": "{\"understood_goal\":\"DRY_RUN\",\"constraints_to_follow\":[],\"information_still_missing\":[],\"first_3_concrete_actions\":[]}",
+      "worker_response_json": {
+        "understood_goal": "DRY_RUN",
+        "constraints_to_follow": [],
+        "information_still_missing": [],
+        "first_3_concrete_actions": []
+      },
+      "worker_usage": {},
+      "deterministic_contract_checks": {
+        "planner_non_empty": true,
+        "planner_has_json_tail": true,
+        "worker_json_parse_ok": true,
+        "worker_required_fields_present": true,
+        "violations": []
+      },
+      "judge_model": "gpt-5.4-mini",
+      "judge_response_text": "{\"planner_constraint_coverage_score\":0,\"planner_risk_flagging_score\":0,\"worker_goal_alignment_score\":0,\"worker_missing_info_score\":0,\"worker_first_action_precision_score\":0,\"spec_score\":0,\"worker_score\":0,\"final_verdict\":\"spec_weak\",\"covered_gold_constraints\":[],\"missed_gold_constraints\":[],\"forbidden_assumptions_made\":[],\"separation_notes\":\"DRY_RUN\",\"concise_rationale\":\"DRY_RUN\"}",
+      "judge_response_json": {
+        "planner_constraint_coverage_score": 0,
+        "planner_risk_flagging_score": 0,
+        "worker_goal_alignment_score": 0,
+        "worker_missing_info_score": 0,
+        "worker_first_action_precision_score": 0,
+        "spec_score": 0,
+        "worker_score": 0,
+        "final_verdict": "spec_weak",
+        "covered_gold_constraints": [],
+        "missed_gold_constraints": [],
+        "forbidden_assumptions_made": [],
+        "separation_notes": "DRY_RUN",
+        "concise_rationale": "DRY_RUN"
+      },
+      "judge_usage": {},
+      "elapsed_s": 0.002
+    },
+    {
+      "episode_yaml": "C:\\Users\\agares\\OneDrive\\0 求职\\面试\\Agent_info_flow\\data\\t2_episodes\\test_ground\\ep005_nnunet_dataset_json.yaml",
+      "judge_yaml": "C:\\Users\\agares\\OneDrive\\0 求职\\面试\\Agent_info_flow\\data\\t2_episodes\\test_ground\\judges\\ep005_nnunet_dataset_json.judge.yaml",
+      "episode_id": "ep005_nnunet_dataset_json",
+      "condition": "B0_guardrailed",
+      "seed": 0,
+      "pair_label": "glm_x_qwen",
+      "planner_label": "glm_4_7_flash",
+      "planner_model_id": "zai.glm-4.7-flash",
+      "worker_label": "qwen3_coder_30b",
+      "worker_model_id": "qwen.qwen3-coder-30b-a3b-v1:0",
+      "planner_prompt_leak_paths": [],
+      "worker_prompt_leak_paths": [],
+      "planner_response_text": "DRY_RUN planner spec.\n\n```json\n{\"assumptions\":[],\"risks\":[],\"open_questions\":[]}\n```",
+      "planner_usage": {},
+      "worker_response_text": "{\"understood_goal\":\"DRY_RUN\",\"constraints_to_follow\":[],\"information_still_missing\":[],\"first_3_concrete_actions\":[]}",
+      "worker_response_json": {
+        "understood_goal": "DRY_RUN",
+        "constraints_to_follow": [],
+        "information_still_missing": [],
+        "first_3_concrete_actions": []
+      },
+      "worker_usage": {},
+      "deterministic_contract_checks": {
+        "planner_non_empty": true,
+        "planner_has_json_tail": true,
+        "worker_json_parse_ok": true,
+        "worker_required_fields_present": true,
+        "violations": []
+      },
+      "judge_model": "gpt-5.4-mini",
+      "judge_response_text": "{\"planner_constraint_coverage_score\":0,\"planner_risk_flagging_score\":0,\"worker_goal_alignment_score\":0,\"worker_missing_info_score\":0,\"worker_first_action_precision_score\":0,\"spec_score\":0,\"worker_score\":0,\"final_verdict\":\"spec_weak\",\"covered_gold_constraints\":[],\"missed_gold_constraints\":[],\"forbidden_assumptions_made\":[],\"separation_notes\":\"DRY_RUN\",\"concise_rationale\":\"DRY_RUN\"}",
+      "judge_response_json": {
+        "planner_constraint_coverage_score": 0,
+        "planner_risk_flagging_score": 0,
+        "worker_goal_alignment_score": 0,
+        "worker_missing_info_score": 0,
+        "worker_first_action_precision_score": 0,
+        "spec_score": 0,
+        "worker_score": 0,
+        "final_verdict": "spec_weak",
+        "covered_gold_constraints": [],
+        "missed_gold_constraints": [],
+        "forbidden_assumptions_made": [],
+        "separation_notes": "DRY_RUN",
+        "concise_rationale": "DRY_RUN"
+      },
+      "judge_usage": {},
+      "elapsed_s": 0.002
+    },
+    {
+      "episode_yaml": "C:\\Users\\agares\\OneDrive\\0 求职\\面试\\Agent_info_flow\\data\\t2_episodes\\test_ground\\ep005_nnunet_dataset_json.yaml",
+      "judge_yaml": "C:\\Users\\agares\\OneDrive\\0 求职\\面试\\Agent_info_flow\\data\\t2_episodes\\test_ground\\judges\\ep005_nnunet_dataset_json.judge.yaml",
+      "episode_id": "ep005_nnunet_dataset_json",
+      "condition": "B0_guardrailed",
+      "seed": 0,
+      "pair_label": "kimi_x_qwen",
+      "planner_label": "kimi_k2_5",
+      "planner_model_id": "moonshotai.kimi-k2.5",
+      "worker_label": "qwen3_coder_30b",
+      "worker_model_id": "qwen.qwen3-coder-30b-a3b-v1:0",
+      "planner_prompt_leak_paths": [],
+      "worker_prompt_leak_paths": [],
+      "planner_response_text": "DRY_RUN planner spec.\n\n```json\n{\"assumptions\":[],\"risks\":[],\"open_questions\":[]}\n```",
+      "planner_usage": {},
+      "worker_response_text": "{\"understood_goal\":\"DRY_RUN\",\"constraints_to_follow\":[],\"information_still_missing\":[],\"first_3_concrete_actions\":[]}",
+      "worker_response_json": {
+        "understood_goal": "DRY_RUN",
+        "constraints_to_follow": [],
+        "information_still_missing": [],
+        "first_3_concrete_actions": []
+      },
+      "worker_usage": {},
+      "deterministic_contract_checks": {
+        "planner_non_empty": true,
+        "planner_has_json_tail": true,
+        "worker_json_parse_ok": true,
+        "worker_required_fields_present": true,
+        "violations": []
+      },
+      "judge_model": "gpt-5.4-mini",
+      "judge_response_text": "{\"planner_constraint_coverage_score\":0,\"planner_risk_flagging_score\":0,\"worker_goal_alignment_score\":0,\"worker_missing_info_score\":0,\"worker_first_action_precision_score\":0,\"spec_score\":0,\"worker_score\":0,\"final_verdict\":\"spec_weak\",\"covered_gold_constraints\":[],\"missed_gold_constraints\":[],\"forbidden_assumptions_made\":[],\"separation_notes\":\"DRY_RUN\",\"concise_rationale\":\"DRY_RUN\"}",
+      "judge_response_json": {
+        "planner_constraint_coverage_score": 0,
+        "planner_risk_flagging_score": 0,
+        "worker_goal_alignment_score": 0,
+        "worker_missing_info_score": 0,
+        "worker_first_action_precision_score": 0,
+        "spec_score": 0,
+        "worker_score": 0,
+        "final_verdict": "spec_weak",
+        "covered_gold_constraints": [],
+        "missed_gold_constraints": [],
+        "forbidden_assumptions_made": [],
+        "separation_notes": "DRY_RUN",
+        "concise_rationale": "DRY_RUN"
+      },
+      "judge_usage": {},
+      "elapsed_s": 0.002
+    }
+  ]
+}

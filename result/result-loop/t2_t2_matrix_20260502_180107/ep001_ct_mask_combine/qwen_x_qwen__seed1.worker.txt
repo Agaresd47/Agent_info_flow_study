@@ -1,0 +1,26 @@
+{
+  "understood_goal": "Process batches of patient CT scans and segmentation masks to generate merged binary masks, real-intensity masks, and a soft tissue CT image, with support for crash recovery and efficient large-scale execution.",
+  "constraints_to_follow": [
+    "Use the specified input directory structure (<dataset_root>/mask/<patient_id>_total/ and <dataset_root>/ct/<patient_id>.nii.gz).",
+    "Group mask files by prefix/suffix matching to form anatomical structures (e.g., rib_left_* and rib_right_* into rib).",
+    "Perform bitwise OR operations for merging binary masks within the same anatomical category.",
+    "Generate real-intensity masks by replacing values inside merged binary masks with intensities from the original CT scan.",
+    "Create a soft tissue CT image by filling uncovered voxels with soft tissue values derived from the CT scan.",
+    "Support resuming execution after crashes by checking for a completion marker in the output directory.",
+    "Ensure no destructive writes unless explicitly allowed by design.",
+    "Maintain consistency in spatial resolution and orientation between CT and mask volumes."
+  ],
+  "information_still_missing": [
+    "Exact naming convention used to group mask files into anatomical categories (e.g., how to identify which files belong together).",
+    "Definition of background fill behavior for real-intensity masks (should unused regions be masked out or left as-is?).",
+    "How to define 'soft tissue' in the CT scan (fixed value or derived from data).",
+    "Expected format and location of the completion marker file (e.g., filename, content).",
+    "Specific overwrite policy for existing outputs during resume (overwrite or abort).",
+    "Whether patient IDs may contain reserved or special characters requiring sanitization."
+  ],
+  "first_3_concrete_actions": [
+    "Clarify the exact naming convention for grouping mask files into anatomical categories.",
+    "Define the background fill behavior for real-intensity masks.",
+    "Determine how 'soft tissue' is defined in the CT scan and whether it's a fixed or dynamic value."
+  ]
+}

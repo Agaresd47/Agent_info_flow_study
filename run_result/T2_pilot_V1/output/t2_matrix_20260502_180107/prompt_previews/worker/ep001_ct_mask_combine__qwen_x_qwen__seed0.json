@@ -1,0 +1,24 @@
+{
+  "condition": "B0_guardrailed",
+  "seed": 0,
+  "episode_id": "ep001_ct_mask_combine",
+  "planner_spec": "### Implementation Plan for CT/Mask Preprocessing Worker\n\n#### 1. **Mask Merging Logic**\n- **Mathematical Semantics**:  \n  For each structure type (e.g., `rib_left_*`, `rib_right_*`), combine all corresponding masks using a logical OR operation. This results in a binary mask where a voxel is 1 if it belongs to any of the structures in that group.\n\n- **Structure File Selection**:\n  - Files under `<dataset_root>/mask/<patient_id>_total/` are assumed to be named with a consistent prefix indicating their anatomical class (e.g., `rib_left_1.nii.gz`, `rib_right_2.nii.gz`).\n  - The worker must parse filenames to extract structure types and group them accordingly.\n  - No specific naming convention is provided; thus, how to determine which files belong to which structure group is **missing**.\n\n#### 2. **Real-Intensity Mask Generation**\n- **CT Data Integration**:\n  - Use the CT image at `<dataset_root>/ct/<patient_id>.nii.gz`.\n  - Replace values inside the foreground mask (from step 1) with the corresponding intensity values from the CT scan.\n  - Voxels outside the foreground mask should be set to a background fill value (see below).\n\n- **Background Fill Value**:\n  - The fill value used for non-foreground voxels in real-intensity masks is **missing**.\n\n#### 3. **Soft Tissue CT Output**\n- **Foreground Definition**:\n  - All merged structure masks are treated as foreground.\n  - Remaining voxels (i.e., those not part of any structure) are considered soft tissue.\n\n- **Background Fill Value**:\n  - The fill value used for soft tissue CT output is **missing**.\n\n#### 4. **Resume Capability**\n- **Completion Marker**:\n  - A mechanism to track whether a patient's processing has been completed is required.\n  - No explicit marker format is defined; possible approaches include:\n    - Writing a `.done` file per patient.\n    - Using a metadata log or database entry.\n  - Whether such a marker exists or needs to be created is **missing**.\n\n- **Recovery Strategy**:\n  - If a crash occurs mid-processing, the worker should check for existing outputs and skip already processed patients.\n  - If partial output exists, it must not be overwritten unless explicitly allowed — no overwrite policy is specified.\n\n#### 5. **Output Directory Structure**\n- Output will be written to `<output_root>/<patient_id>/`.\n- Each patient’s directory may contain:\n  - Merged structure masks.\n  - Real-intensity masks per structure.\n  - Soft tissue CT image.\n\n---\n\n```json\n{\n  \"assumptions\": [\n    \"Each patient has exactly one CT file and one mask folder named <patient_id>_total.\",\n    \"Mask files within a patient's mask folder follow a naming pattern that allows grouping by structure type.\",\n    \"The CT and mask images have matching spatial resolution and orientation.\",\n    \"All mask files are in NIfTI format (.nii.gz).\"\n  ],\n  \"risks\": [\n    \"Incorrectly identifying structure groups due to ambiguous filename patterns could lead to wrong merges.\",\n    \"Overwriting existing outputs without proper resume logic might cause data loss.\",\n    \"Using incorrect background fill values can distort downstream analysis.\"\n  ],\n  \"open_questions\": [\n    \"How are structure types determined from filenames? Is there a known mapping or regex pattern?\",\n    \"What is the expected background fill value for real-intensity masks?\",\n    \"What is the expected background fill value for soft tissue CT output?\",\n    \"Is there a specific completion marker or flag file used to indicate successful processing?\",\n    \"Should the worker overwrite existing outputs or skip if they exist?\"\n  ]\n}\n```",
+  "task": "Interpret the planner spec. Do not use outside knowledge except general engineering caution.",
+  "output_schema": {
+    "understood_goal": "string",
+    "constraints_to_follow": [
+      "specific constraints stated or strongly implied by the planner spec"
+    ],
+    "information_still_missing": [
+      "missing information that blocks safe implementation"
+    ],
+    "first_3_concrete_actions": [
+      "the first three actions you would take before writing final code"
+    ]
+  },
+  "instructions": [
+    "Return strict JSON only.",
+    "If the planner spec omits something important, put it in information_still_missing instead of inventing it.",
+    "Do not assume hidden dataset schema, file naming, algorithm details, or safety policy."
+  ]
+}

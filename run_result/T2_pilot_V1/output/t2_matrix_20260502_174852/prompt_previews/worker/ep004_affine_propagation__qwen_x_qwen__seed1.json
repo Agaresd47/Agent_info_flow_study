@@ -1,0 +1,24 @@
+{
+  "condition": "B0_guardrailed",
+  "seed": 1,
+  "episode_id": "ep004_affine_propagation",
+  "planner_spec": "### Implementation Plan: Affine Alignment Worker\n\n#### Observed Facts:\n- The task involves correcting affine transformations in medical imaging data (CT and masks).\n- Each patient has a `ct.nii.gz` file with an affine matrix.\n- Other mask files in the same directory need their affine matrices corrected to match the CT's affine.\n- The correction process includes QR decomposition to clean rotation noise and sign alignment.\n\n#### Assumptions:\n- All input files are in NIfTI format (`*.nii.gz`).\n- The `ct.nii.gz` file is present in each patient directory.\n- Mask files are named such that they can be identified as non-CT files within the same directory.\n- The affine matrices are 4x4 homogeneous transformation matrices.\n- The worker will use libraries like `nibabel` for reading/writing NIfTI files and `numpy` for matrix operations.\n\n#### Constraints:\n- Must preserve original data integrity; no overwrite without backup or confirmation.\n- Parallel processing must be safe and avoid race conditions on shared resources.\n- The worker must handle potential errors gracefully (e.g., missing files, invalid affine matrices).\n\n#### Risks:\n- Incorrect application of affine corrections may lead to misalignment between CT and mask volumes.\n- Sign flipping during QR decomposition could introduce unexpected orientation changes if not carefully handled.\n- Parallel execution might cause issues if multiple workers access the same directory simultaneously unless properly synchronized.\n\n#### Open Questions:\n- What is the exact naming convention for mask files? Are all `.nii.gz` files except `ct.nii.gz` considered masks?\n- Should the worker log progress or errors during processing?\n- Is there a specific way to validate that the affine alignment was successful after correction?\n\n---\n\n```json\n{\n  \"assumptions\": [\n    \"All input files are in NIfTI format.\",\n    \"Each patient directory contains exactly one `ct.nii.gz` file.\",\n    \"Mask files are any `.nii.gz` files other than `ct.nii.gz` in the same directory.\",\n    \"Affine matrices are 4x4 homogeneous transformation matrices.\",\n    \"The worker uses `nibabel` and `numpy` for processing.\"\n  ],\n  \"risks\": [\n    \"Incorrect affine correction leads to misalignment between CT and mask volumes.\",\n    \"Sign flipping during QR decomposition introduces unexpected orientation changes.\",\n    \"Parallel processing may cause race conditions if not properly synchronized.\"\n  ],\n  \"open_questions\": [\n    \"What is the exact naming convention for mask files?\",\n    \"Should the worker log progress or errors during processing?\",\n    \"Is there a validation method to confirm successful affine alignment?\"\n  ]\n}\n```",
+  "task": "Interpret the planner spec. Do not use outside knowledge except general engineering caution.",
+  "output_schema": {
+    "understood_goal": "string",
+    "constraints_to_follow": [
+      "specific constraints stated or strongly implied by the planner spec"
+    ],
+    "information_still_missing": [
+      "missing information that blocks safe implementation"
+    ],
+    "first_3_concrete_actions": [
+      "the first three actions you would take before writing final code"
+    ]
+  },
+  "instructions": [
+    "Return strict JSON only.",
+    "If the planner spec omits something important, put it in information_still_missing instead of inventing it.",
+    "Do not assume hidden dataset schema, file naming, algorithm details, or safety policy."
+  ]
+}

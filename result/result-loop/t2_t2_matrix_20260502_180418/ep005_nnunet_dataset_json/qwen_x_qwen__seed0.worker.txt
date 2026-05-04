@@ -1,0 +1,23 @@
+{
+  "understood_goal": "Generate a `dataset.json` file for an nnU-Net v2 dataset following the specified directory structure and conventions, ensuring correct mapping between training images and labels, and optionally including test cases if present.",
+  "constraints_to_follow": [
+    "Case IDs must align between images and labels based on filename prefixes (e.g., `case001` matches `case001_0000.nii.gz` and `case001.nii.gz`).",
+    "Only training cases should be included in the `training` field of `dataset.json`.",
+    "Test cases should be listed under the `test` field if they exist in `imagesTs/` and corresponding labels exist in `labelsTs/`.",
+    "All files must use `.nii.gz` extension.",
+    "Schema fields must conform to nnU-Net v2 specification.",
+    "Paths in the JSON should be relative to the dataset root unless otherwise specified."
+  ],
+  "information_still_missing": [
+    "Exact required and optional fields in the nnU-Net v2 `dataset.json` schema, including rules for `description`, `reference`, `licence`, `release`, etc.",
+    "Whether relative or absolute paths are preferred and the expected base path context for nnU-Net.",
+    "Guarantee that all files in `imagesTr/` and `labelsTr/` have `.nii.gz` extension; whether test set files in `imagesTs/` also follow this convention.",
+    "Confirmation that the presence of `imagesTs/` alone is sufficient to include test cases, or if matching label files in `labelsTs/` must also be verified.",
+    "Specific rule for how strictly case ID matching must occur between image and label files (e.g., whether `case001_0000.nii.gz` implies `case001.nii.gz`)."
+  ],
+  "first_3_concrete_actions": [
+    "Verify the exact nnU-Net v2 `dataset.json` schema definition to ensure compliance with required fields and formatting.",
+    "Check the contents of `imagesTr/` and `labelsTr/` to confirm consistent `.nii.gz` extensions and extract valid case IDs.",
+    "Check for the existence of `imagesTs/` and `labelsTs/` directories and validate that corresponding test case files exist in both."
+  ]
+}

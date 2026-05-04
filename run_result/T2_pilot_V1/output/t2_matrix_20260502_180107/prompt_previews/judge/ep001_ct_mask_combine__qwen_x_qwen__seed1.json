@@ -1,0 +1,125 @@
+{
+  "episode_id": "ep001_ct_mask_combine",
+  "condition": "B0_guardrailed",
+  "seed": 1,
+  "pair_label": "qwen_x_qwen",
+  "planner_label": "qwen3_coder_30b",
+  "worker_label": "qwen3_coder_30b",
+  "planner_visible_request": "我有一批病人 CT，每个病人在 <dataset_root>/ct/ 下有一个 <patient_id>.nii.gz，\n在 <dataset_root>/mask/<patient_id>_total/ 下有 TotalSeg 输出的若干结构 mask。\n\n请帮我对每个病人做：\n1. 把同一类的多个结构 mask 合成一个二值 mask（比如所有 rib_left_* 和 rib_right_* 合成一个 rib mask）\n2. 用 CT 的强度填到 mask 区域，得到 \"real-intensity mask\"\n3. 把所有结构合在一起作为前景，剩下的体素当作软组织 CT 输出一份\n\n要支持中途崩溃后续跑。多机会跑很多病人，速度优先。\n这份 spec 里需要把几个实现类别说清楚：mask 合并到底采用什么数学语义、结构文件如何被选择、续跑完成状态如何判定、real-intensity 和软组织 CT 的背景/填充值如何处理。\n输出到 <output_root>/<patient_id>/ 下。\n",
+  "gold_task_goal": "对每个病人，按预定义的结构组（rib / lung / spine / heart / aorta / other_bones）\n正则匹配 TotalSeg 输出文件，每组合并为单个二值 mask（np.maximum 语义），\n并基于该 mask 抠出 real-intensity mask 和软组织 CT。\n支持续跑（基于 .processing_done flag）。\npatient-level 并行。\n",
+  "gold_constraints": [
+    "结构合并算子必须是 np.maximum，不是 np.add（避免重叠区域溢出）",
+    "续跑判定基于 <output_root>/<patient_id>/.processing_done 文件存在性",
+    "结构选择用正则模式（如 rib_(left|right)_\\d+\\.nii\\.gz），不能硬编码完整列表",
+    "affine 和 header 取自第一个被合并的 mask 文件",
+    "软组织 CT = CT 数据，把所有结构区域填为 padding_value（默认 5）",
+    "real-intensity mask 中非 mask 区域填 -999.9（不是 0）",
+    "并行粒度是 patient，单 patient 内串行",
+    "成功完成才写 .processing_done，部分完成不写"
+  ],
+  "gold_relevant_files": [
+    "<dataset_root>/ct/<patient_id>.nii.gz",
+    "<dataset_root>/mask/<patient_id>_total/",
+    "<output_root>/<patient_id>/.processing_done",
+    "<output_root>/<patient_id>/<patient_id>_<group>_mask.nii.gz",
+    "<output_root>/<patient_id>/<patient_id>_<group>_real.nii.gz",
+    "<output_root>/<patient_id>/<patient_id>_soft_tissue.nii.gz",
+    "<output_root>/processing_success.log"
+  ],
+  "judge_only_rubric": {
+    "critical_constraints_min_for_acceptable": 3,
+    "critical_constraints_min_for_strong": 5,
+    "score_caps": {
+      "max_spec_score_if_no_gold_constraint_captured": 3,
+      "max_spec_score_if_forbidden_assumption_introduced": 5,
+      "max_worker_score_if_missing_info_empty_under_weak_spec": 6
+    },
+    "positive_signals": [
+      "Planner states concrete constraints rather than delegating them vaguely.",
+      "Planner flags unresolved choices and unsafe/destructive operations.",
+      "Worker preserves the planner intent while identifying missing implementation details."
+    ],
+    "negative_signals": [
+      "Planner introduces a convenient but wrong default.",
+      "Worker treats an underspecified handoff as complete.",
+      "Worker first actions target files or schemas not grounded in the planner spec."
+    ]
+  },
+  "episode_gold_extras": {},
+  "expected_v1_pitfalls": [
+    "Omit or blur critical constraint: 结构合并算子必须是 np.maximum，不是 np.add（避免重叠区域溢出）",
+    "Omit or blur critical constraint: 续跑判定基于 <output_root>/<patient_id>/.processing_done 文件存在性",
+    "Omit or blur critical constraint: 结构选择用正则模式（如 rib_(left|right)_\\d+\\.nii\\.gz），不能硬编码完整列表"
+  ],
+  "decoys": [
+    "Worker may fill in a plausible implementation default that the planner did not actually specify.",
+    "Worker may treat a visible path or schema summary as complete when it is only partial."
+  ],
+  "forbidden_assumptions": [
+    "Do not infer hidden file naming, merge semantics, resume markers, or destructive write policy unless the planner spec states them."
+  ],
+  "planner_response_text": "### Implementation Spec: CT Mask Processing Worker\n\n#### Overview\nThis worker processes a batch of patients' CT scans and corresponding segmentation masks to generate:\n1. Merged binary masks per anatomical structure (e.g., all ribs combined into one).\n2. Real-intensity masks where each voxel's intensity is taken from the original CT scan within the mask region.\n3. A soft tissue CT image with background filled using the remaining voxels not covered by foreground structures.\n\nThe process must support resuming after crashes and prioritize speed for large-scale execution.\n\n---\n\n### Key Implementation Categories\n\n#### 1. **Mask Merging Logic**\n- **Mathematical Semantics**: Binary OR operation across all masks belonging to the same anatomical class.\n  - Example: For `rib_left_*` and `rib_right_*`, perform bitwise OR on all such masks to form a single `rib` mask.\n- **Structure File Selection**:\n  - Input directory: `<dataset_root>/mask/<patient_id>_total/`\n  - Files are named according to a pattern like `rib_left_1.nii.gz`, `rib_right_2.nii.gz`.\n  - Grouping logic must be based on prefix/suffix matching (e.g., `rib_left_*` and `rib_right_*` belong to `rib`).\n  - Missing or malformed files should be skipped without error unless explicitly required.\n- **Missing Information**:\n  - Exact naming convention for grouping (e.g., how to identify which files belong together).\n  - Whether there are special cases or exceptions to groupings (e.g., asymmetrical structures).\n\n#### 2. **Real-Intensity Mask Generation**\n- **CT Source**: Use the corresponding `.nii.gz` file at `<dataset_root>/ct/<patient_id>.nii.gz`.\n- **Fill Operation**:\n  - Replace values inside the merged binary mask with intensities from the CT scan.\n  - Voxels outside the mask remain unchanged or are set to zero if needed.\n- **Background Handling**:\n  - Background fill value for real-intensity masks is undefined in the prompt.\n  - Must define whether unused regions should be masked out or left as-is.\n- **Missing Information**:\n  - Definition of background fill behavior for real-intensity masks.\n\n#### 3. **Soft Tissue CT Output**\n- **Foreground Coverage**:\n  - All merged structures are treated as foreground.\n- **Background Fill**:\n  - Remaining voxels (not part of any foreground structure) are filled with soft tissue CT values.\n  - The definition of “soft tissue” is ambiguous; it may refer to a specific range or threshold.\n- **Missing Information**:\n  - How to determine what constitutes “soft tissue” in the CT scan.\n  - Whether to use a fixed value or dynamic fill based on CT histogram.\n\n#### 4. **Resume Capability**\n- **Completion Marker**:\n  - Each patient’s output folder (`<output_root>/<patient_id>/`) should contain a marker file indicating completion.\n  - Suggested name: `.completed` or similar.\n- **Resumption Policy**:\n  - Skip processing if the marker exists.\n  - If partial outputs exist, decide whether to overwrite or abort.\n- **Missing Information**:\n  - Exact format of the completion marker (file name, content, etc.).\n  - Overwrite policy for existing outputs during resume.\n\n#### 5. **Output Directory Structure**\n- Output root: `<output_root>/<patient_id>/`\n- Expected outputs:\n  - Merged binary masks (e.g., `rib.nii.gz`)\n  - Real-intensity masks (e.g., `rib_real.nii.gz`)\n  - Soft tissue CT (e.g., `soft_tissue.nii.gz`)\n- **Missing Information**:\n  - Naming convention for output files beyond basic structure.\n  - Whether to compress outputs or leave them uncompressed.\n\n---\n\n### Assumptions\n\n- All input files follow consistent naming conventions within their respective directories.\n- The number of structures per category is known or can be inferred from file names.\n- CT and mask volumes have matching spatial resolution and orientation.\n- No destructive writes occur unless explicitly allowed by design.\n- The worker will run in an environment where multiple processes can safely access shared storage.\n\n---\n\n### Risks\n\n- Incorrect grouping of mask files due to ambiguous naming patterns could lead to incorrect merging.\n- Inconsistent handling of background fills might produce inconsistent results across runs.\n- Lack of clear overwrite/resume policies may cause data loss or redundant computation.\n- Failure to detect incomplete or corrupted intermediate outputs may result in incorrect final state.\n\n---\n\n### Open Questions\n\n1. What is the exact naming convention used to group mask files into anatomical categories?\n2. Should real-intensity masks have a defined background fill value? If so, what is it?\n3. How is “soft tissue” defined in the context of the CT scan? Is it a fixed value or derived from the data?\n4. What is the expected format and location of the completion marker file?\n5. Is there a specific overwrite policy for existing outputs when resuming?\n6. Are there any reserved or special characters in the patient IDs that require sanitization?\n\n```json\n{\n  \"assumptions\": [\n    \"All input files follow consistent naming conventions within their respective directories.\",\n    \"The number of structures per category is known or can be inferred from file names.\",\n    \"CT and mask volumes have matching spatial resolution and orientation.\",\n    \"No destructive writes occur unless explicitly allowed by design.\",\n    \"The worker will run in an environment where multiple processes can safely access shared storage.\"\n  ],\n  \"risks\": [\n    \"Incorrect grouping of mask files due to ambiguous naming patterns could lead to incorrect merging.\",\n    \"Inconsistent handling of background fills might produce inconsistent results across runs.\",\n    \"Lack of clear overwrite/resume policies may cause data loss or redundant computation.\",\n    \"Failure to detect incomplete or corrupted intermediate outputs may result in incorrect final state.\"\n  ],\n  \"open_questions\": [\n    \"What is the exact naming convention used to group mask files into anatomical categories?\",\n    \"Should real-intensity masks have a defined background fill value? If so, what is it?\",\n    \"How is \\\"soft tissue\\\" defined in the context of the CT scan? Is it a fixed value or derived from the data?\",\n    \"What is the expected format and location of the completion marker file?\",\n    \"Is there a specific overwrite policy for existing outputs when resuming?\",\n    \"Are there any reserved or special characters in the patient IDs that require sanitization?\"\n  ]\n}\n```",
+  "worker_response_text": "{\n  \"understood_goal\": \"Process batches of patient CT scans and segmentation masks to generate merged binary masks, real-intensity masks, and a soft tissue CT image, with support for crash recovery and efficient large-scale execution.\",\n  \"constraints_to_follow\": [\n    \"Use the specified input directory structure (<dataset_root>/mask/<patient_id>_total/ and <dataset_root>/ct/<patient_id>.nii.gz).\",\n    \"Group mask files by prefix/suffix matching to form anatomical structures (e.g., rib_left_* and rib_right_* into rib).\",\n    \"Perform bitwise OR operations for merging binary masks within the same anatomical category.\",\n    \"Generate real-intensity masks by replacing values inside merged binary masks with intensities from the original CT scan.\",\n    \"Create a soft tissue CT image by filling uncovered voxels with soft tissue values derived from the CT scan.\",\n    \"Support resuming execution after crashes by checking for a completion marker in the output directory.\",\n    \"Ensure no destructive writes unless explicitly allowed by design.\",\n    \"Maintain consistency in spatial resolution and orientation between CT and mask volumes.\"\n  ],\n  \"information_still_missing\": [\n    \"Exact naming convention used to group mask files into anatomical categories (e.g., how to identify which files belong together).\",\n    \"Definition of background fill behavior for real-intensity masks (should unused regions be masked out or left as-is?).\",\n    \"How to define 'soft tissue' in the CT scan (fixed value or derived from data).\",\n    \"Expected format and location of the completion marker file (e.g., filename, content).\",\n    \"Specific overwrite policy for existing outputs during resume (overwrite or abort).\",\n    \"Whether patient IDs may contain reserved or special characters requiring sanitization.\"\n  ],\n  \"first_3_concrete_actions\": [\n    \"Clarify the exact naming convention for grouping mask files into anatomical categories.\",\n    \"Define the background fill behavior for real-intensity masks.\",\n    \"Determine how 'soft tissue' is defined in the CT scan and whether it's a fixed or dynamic value.\"\n  ]\n}",
+  "worker_response_json": {
+    "understood_goal": "Process batches of patient CT scans and segmentation masks to generate merged binary masks, real-intensity masks, and a soft tissue CT image, with support for crash recovery and efficient large-scale execution.",
+    "constraints_to_follow": [
+      "Use the specified input directory structure (<dataset_root>/mask/<patient_id>_total/ and <dataset_root>/ct/<patient_id>.nii.gz).",
+      "Group mask files by prefix/suffix matching to form anatomical structures (e.g., rib_left_* and rib_right_* into rib).",
+      "Perform bitwise OR operations for merging binary masks within the same anatomical category.",
+      "Generate real-intensity masks by replacing values inside merged binary masks with intensities from the original CT scan.",
+      "Create a soft tissue CT image by filling uncovered voxels with soft tissue values derived from the CT scan.",
+      "Support resuming execution after crashes by checking for a completion marker in the output directory.",
+      "Ensure no destructive writes unless explicitly allowed by design.",
+      "Maintain consistency in spatial resolution and orientation between CT and mask volumes."
+    ],
+    "information_still_missing": [
+      "Exact naming convention used to group mask files into anatomical categories (e.g., how to identify which files belong together).",
+      "Definition of background fill behavior for real-intensity masks (should unused regions be masked out or left as-is?).",
+      "How to define 'soft tissue' in the CT scan (fixed value or derived from data).",
+      "Expected format and location of the completion marker file (e.g., filename, content).",
+      "Specific overwrite policy for existing outputs during resume (overwrite or abort).",
+      "Whether patient IDs may contain reserved or special characters requiring sanitization."
+    ],
+    "first_3_concrete_actions": [
+      "Clarify the exact naming convention for grouping mask files into anatomical categories.",
+      "Define the background fill behavior for real-intensity masks.",
+      "Determine how 'soft tissue' is defined in the CT scan and whether it's a fixed or dynamic value."
+    ]
+  },
+  "deterministic_contract_checks": {
+    "planner_non_empty": true,
+    "planner_has_json_tail": true,
+    "worker_json_parse_ok": true,
+    "worker_required_fields_present": true,
+    "violations": []
+  },
+  "judge_instructions": [
+    "Evaluate information flow, not whether final code was produced.",
+    "Planner constraint coverage must be judged against gold_constraints that are reasonably inferable from the visible request; do not require impossible hidden details unless the episode rubric marks them critical.",
+    "Penalize planner false confidence when it gives worker a concrete wrong default instead of flagging a missing detail.",
+    "Reward worker output when it correctly flags missing information caused by a weak planner spec.",
+    "Score each dimension 0-2 and total to 0-10.",
+    "Return strict JSON only."
+  ],
+  "output_schema": {
+    "planner_constraint_coverage_score": "0-2",
+    "planner_risk_flagging_score": "0-2",
+    "worker_goal_alignment_score": "0-2",
+    "worker_missing_info_score": "0-2",
+    "worker_first_action_precision_score": "0-2",
+    "spec_score": "0-10",
+    "worker_score": "0-10",
+    "final_verdict": "spec_strong | spec_acceptable | spec_weak | spec_unsafe",
+    "covered_gold_constraints": [
+      "gold constraints captured by planner or worker"
+    ],
+    "missed_gold_constraints": [
+      "important gold constraints omitted or mishandled"
+    ],
+    "forbidden_assumptions_made": [
+      "wrong assumptions made by planner or worker"
+    ],
+    "separation_notes": "why this cell should or should not separate models",
+    "concise_rationale": "short evidence-based explanation"
+  }
+}

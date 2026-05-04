@@ -1,0 +1,24 @@
+{
+  "condition": "B0_guardrailed",
+  "seed": 0,
+  "episode_id": "ep002_cxr14_healthy_extraction",
+  "planner_spec": "### Implementation Plan\n\n#### Observed Facts:\n- The dataset is NIH ChestX-ray14.\n- Metadata is stored in a CSV file: `<dataset_root>/Data_Entry_2017.csv`.\n- Images are located in a directory: `<dataset_root>/images/`.\n- The goal is to extract images labeled as \"healthy\" for two purposes:\n  1. Copy all healthy patient images to `<output_root>/healthy/`.\n  2. Move only those with single scans (i.e., one image per patient) to `<output_root>/healthy_clean/`.\n\n#### Assumptions:\n- The CSV contains columns such as `PatientID`, `Image Index`, and labels indicating health status.\n- Labels are encoded in a way that allows identification of \"healthy\" cases (e.g., a column like `Finding Labels`).\n- Each row corresponds to an individual image entry.\n- There exists a mechanism to determine if a patient has multiple scans (e.g., via grouping by `PatientID`).\n- The output directories (`<output_root>/healthy/` and `<output_root>/healthy_clean/`) will be created if they don't exist.\n\n#### Constraints:\n- Only images associated with patients labeled as \"healthy\" should be considered.\n- A patient's image(s) must be copied/moved based on their scan count.\n- No data corruption or loss should occur during copying/moving operations.\n- All paths must be validated before use to prevent accidental overwrites or misplacements.\n\n#### Risks:\n- Incorrectly identifying \"healthy\" patients due to ambiguous label formats.\n- Misinterpreting multi-scan vs. single-scan patients leading to incorrect filtering.\n- Failure to handle missing or malformed entries in the CSV.\n- Unsafe file system operations if paths are not properly sanitized.\n\n#### Open Questions:\n- What specific column(s) in the CSV indicate whether a case is \"healthy\"? \n- How exactly is the \"single scan\" condition defined? Is it simply one image per `PatientID`?\n- Are there any special handling requirements for duplicate filenames or existing files in output directories?\n\n---\n\n```json\n{\n  \"assumptions\": [\n    \"The CSV contains columns including 'PatientID', 'Image Index', and 'Finding Labels'.\",\n    \"Label encoding indicates 'healthy' status through a specific string or flag.\",\n    \"Each row represents a unique image entry.\",\n    \"A patient with only one image entry is considered to have a single scan.\"\n  ],\n  \"risks\": [\n    \"Misinterpretation of label values may lead to incorrect selection of healthy samples.\",\n    \"Incorrect grouping logic could misclassify patients with multiple scans.\",\n    \"File system errors during copy/move operations might result in partial or failed transfers.\",\n    \"Unsanitized paths could cause unintended behavior or security issues.\"\n  ],\n  \"open_questions\": [\n    \"Which column(s) in the CSV define the health status?\",\n    \"How is the single-scan condition determined (e.g., number of rows per PatientID)?\",\n    \"Should existing files in output directories be overwritten or skipped?\"\n  ]\n}\n```",
+  "task": "Interpret the planner spec. Do not use outside knowledge except general engineering caution.",
+  "output_schema": {
+    "understood_goal": "string",
+    "constraints_to_follow": [
+      "specific constraints stated or strongly implied by the planner spec"
+    ],
+    "information_still_missing": [
+      "missing information that blocks safe implementation"
+    ],
+    "first_3_concrete_actions": [
+      "the first three actions you would take before writing final code"
+    ]
+  },
+  "instructions": [
+    "Return strict JSON only.",
+    "If the planner spec omits something important, put it in information_still_missing instead of inventing it.",
+    "Do not assume hidden dataset schema, file naming, algorithm details, or safety policy."
+  ]
+}

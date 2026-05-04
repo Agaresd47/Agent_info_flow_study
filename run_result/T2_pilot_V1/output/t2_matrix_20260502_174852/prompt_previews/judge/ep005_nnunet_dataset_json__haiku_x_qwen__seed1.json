@@ -1,0 +1,124 @@
+{
+  "episode_id": "ep005_nnunet_dataset_json",
+  "condition": "B0_guardrailed",
+  "seed": 1,
+  "pair_label": "haiku_x_qwen",
+  "planner_label": "haiku_4_5",
+  "worker_label": "qwen3_coder_30b",
+  "planner_visible_request": "我准备用 nnU-Net 训一个肺右下叶分割。\n数据已经按 nnU-Net v2 的目录结构放好了：\n\n<dataset_root>/Dataset001_LungLobeRight/\n  imagesTr/\n  labelsTr/\n  imagesTs/\n\n请写个脚本生成 dataset.json。\n单类前景：lung_lower_lobe_right。\n模态是 DRR（不是 CT）。\n",
+  "gold_task_goal": "生成符合 nnU-Net v2 规范的 dataset.json，包含：\nchannel_name / labels / numTraining / numTest / file_ending / training pairs / test 列表。\n",
+  "gold_constraints": [
+    "nnU-Net v2 schema：channel_name 是 dict (str key)，不是 modality 数组",
+    "labels 字典 key 必须是 str（'0', '1'），不是 int",
+    "训练图像文件名形如 <case_id>_0000.nii.gz，case_id 是去掉 _0000.nii.gz 之后的部分",
+    "labelsTr 中的文件名是 <case_id>.nii.gz（无 _0000 后缀）",
+    "training 数组里的路径是相对路径，前缀 './imagesTr/' 和 './labelsTr/'",
+    "test 数组里的路径前缀 './imagesTs/'",
+    "imagesTs 不需要对应 label",
+    "file_ending 字段必须存在（.nii.gz）",
+    "tensorImageSize 在 v2 中已弃用——不要包含"
+  ],
+  "gold_relevant_files": [
+    "<dataset_root>/Dataset001_LungLobeRight/imagesTr/",
+    "<dataset_root>/Dataset001_LungLobeRight/labelsTr/",
+    "<dataset_root>/Dataset001_LungLobeRight/imagesTs/",
+    "<dataset_root>/Dataset001_LungLobeRight/dataset.json"
+  ],
+  "judge_only_rubric": {
+    "critical_constraints_min_for_acceptable": 3,
+    "critical_constraints_min_for_strong": 5,
+    "score_caps": {
+      "max_spec_score_if_no_gold_constraint_captured": 3,
+      "max_spec_score_if_forbidden_assumption_introduced": 5,
+      "max_worker_score_if_missing_info_empty_under_weak_spec": 6
+    },
+    "positive_signals": [
+      "Planner states concrete constraints rather than delegating them vaguely.",
+      "Planner flags unresolved choices and unsafe/destructive operations.",
+      "Worker preserves the planner intent while identifying missing implementation details."
+    ],
+    "negative_signals": [
+      "Planner introduces a convenient but wrong default.",
+      "Worker treats an underspecified handoff as complete.",
+      "Worker first actions target files or schemas not grounded in the planner spec."
+    ]
+  },
+  "episode_gold_extras": {
+    "gold_dataset_json_skeleton": "{\n  \"name\": \"Dataset001_LungLobeRight\",\n  \"description\": \"...\",\n  \"reference\": \"N/A\",\n  \"licence\": \"N/A\",\n  \"release\": \"1.0\",\n  \"channel_name\": {\"0\": \"DRR\"},\n  \"labels\": {\"background\": 0, \"lung_lower_lobe_right\": 1},\n  \"file_ending\": \".nii.gz\",\n  \"numTraining\": <int>,\n  \"numTest\": <int>,\n  \"training\": [\n    {\"image\": \"./imagesTr/case_001_0000.nii.gz\", \"label\": \"./labelsTr/case_001.nii.gz\"}\n  ],\n  \"test\": [\"./imagesTs/case_101_0000.nii.gz\"]\n}\n# 注意：v2 中 labels 是 {name: index}，而不是 {index: name}\n# 这是 nnU-Net v1 → v2 最容易踩的坑\n"
+  },
+  "expected_v1_pitfalls": [
+    "Omit or blur critical constraint: nnU-Net v2 schema：channel_name 是 dict (str key)，不是 modality 数组",
+    "Omit or blur critical constraint: labels 字典 key 必须是 str（'0', '1'），不是 int",
+    "Omit or blur critical constraint: 训练图像文件名形如 <case_id>_0000.nii.gz，case_id 是去掉 _0000.nii.gz 之后的部分"
+  ],
+  "decoys": [
+    "Worker may fill in a plausible implementation default that the planner did not actually specify.",
+    "Worker may treat a visible path or schema summary as complete when it is only partial."
+  ],
+  "forbidden_assumptions": [
+    "Do not infer hidden file naming, merge semantics, resume markers, or destructive write policy unless the planner spec states them."
+  ],
+  "planner_response_text": "# Implementation Spec: nnU-Net v2 dataset.json Generator\n\n## Observed Facts\n\n- User has a dataset directory: `<dataset_root>/Dataset001_LungLobeRight/`\n- Directory structure follows nnU-Net v2 convention with subdirectories: `imagesTr/`, `labelsTr/`, `imagesTs/`\n- Single foreground class: `lung_lower_lobe_right`\n- Imaging modality: DRR (Digital Radiography Reconstruction), not CT\n- Task: right lower lobe lung segmentation\n- Language context: request in Chinese; output should be usable by user\n\n## Assumptions\n\n1. **File naming convention**: Image and label files follow nnU-Net v2 naming (e.g., `case_0000_0000.nii.gz` for images, `case_0000.nii.gz` for labels)\n2. **Single modality**: DRR images are single-channel (not multi-modal stacks)\n3. **Label encoding**: Labels use integer value (e.g., 1 for foreground, 0 for background); exact value TBD\n4. **No validation split**: Only `imagesTr/labelsTr/` and `imagesTs/` exist; no separate validation directory\n5. **dataset.json location**: Output file should be written to `<dataset_root>/dataset.json`\n6. **nnU-Net v2 schema compatibility**: Output must conform to nnU-Net v2's expected `dataset.json` structure\n\n## Constraints & Risks\n\n- **Irreversible action risk**: Writing `dataset.json` will be read by nnU-Net preprocessing; incorrect schema will cause silent failures or cryptic errors downstream\n- **Modality specification**: DRR is non-standard for nnU-Net (typically CT/MRI); must verify whether modality string affects preprocessing (e.g., intensity normalization, resampling)\n- **Label value ambiguity**: Worker must determine the integer label value used in `labelsTr/` files before hardcoding into JSON\n- **File discovery**: Script must robustly scan `imagesTr/` and `labelsTr/` to count cases and infer file extensions; brittle glob patterns could miss files\n- **No error recovery**: If dataset.json is malformed, user will discover it only after attempting nnU-Net training\n\n## Open Questions\n\n1. **Label integer value**: What integer value represents the foreground class in the label files? (e.g., 1, 255, or other?)\n2. **File extension**: Are image/label files `.nii.gz`, `.nii`, or mixed? Should script auto-detect or require user specification?\n3. **Channel dimension**: Are DRR images truly single-channel, or do they have multiple reconstructions stacked?\n4. **Intensity range**: What is the expected intensity range for DRR images? (affects normalization hints in dataset.json)\n5. **nnU-Net version confirmation**: Should script target nnU-Net v2 specifically, or support both v1 and v2?\n6. **Case count validation**: Should script warn if `imagesTr/` and `labelsTr/` have mismatched case counts?\n\n## First Actions for Worker\n\n1. **Inspect sample files**: Read one image and one label file from the dataset to determine:\n   - Actual file extension(s)\n   - Label value(s) present in label files\n   - Image shape and intensity range\n2. **Define dataset.json schema**: Document the exact nnU-Net v2 `dataset.json` structure required (keys: `name`, `description`, `reference`, `license`, `release`, `modality`, `labels`, `numTraining`, `numTest`, `training`, `test`)\n3. **Plan file discovery logic**: Decide on glob pattern or directory listing approach to robustly find all training cases\n4. **Specify output location**: Confirm `<dataset_root>/dataset.json` is the correct write target\n5. **Add validation checks**: Decide whether script should validate case count consistency and warn on mismatches\n\n---\n\n```json\n{\n  \"assumptions\": [\n    \"Image and label files follow nnU-Net v2 naming convention (case_XXXX_YYYY.nii.gz for images, case_XXXX.nii.gz for labels)\",\n    \"DRR images are single-channel (2D or 3D reconstructions without multi-modal stacking)\",\n    \"Labels use a single integer value to encode the foreground class (background = 0)\",\n    \"dataset.json should be written to <dataset_root>/dataset.json\",\n    \"nnU-Net v2 is the target framework; schema must match v2 expectations\",\n    \"No separate validation split exists; only training and test splits\"\n  ],\n  \"risks\": [\n    \"Malformed dataset.json will cause silent failures or cryptic errors during nnU-Net preprocessing; no immediate feedback to user\",\n    \"DRR modality is non-standard for nnU-Net; preprocessing assumptions (normalization, resampling) may be incorrect\",\n    \"Incorrect label integer value in JSON will cause all labels to be ignored or misinterpreted\",\n    \"Brittle file discovery (glob patterns) may miss files with unexpected extensions or naming\",\n    \"Mismatched case counts between imagesTr/ and labelsTr/ will not be caught without explicit validation\",\n    \"Writing dataset.json is irreversible; incorrect schema cannot be auto-corrected by nnU-Net\"\n  ],\n  \"open_questions\": [\n    \"What integer value represents the foreground class in labelsTr/ files?\",\n    \"Are all files .nii.gz, or is there a mix of extensions? Should script auto-detect or require user input?\",\n    \"What is the intensity range of DRR images? (affects normalization metadata in dataset.json)\",\n    \"Are DRR images truly single-channel, or do they contain multiple reconstructions?\",\n    \"Should the script validate that imagesTr/ and labelsTr/ contain the same number of cases?\",\n    \"Does nnU-Net v2 require specific metadata fields for non-standard modalities like DRR?\"\n  ]\n}\n```",
+  "worker_response_text": "{\n  \"understood_goal\": \"Generate a valid nnU-Net v2 dataset.json file for a given dataset directory that contains DRR images and corresponding lung lobe segmentation labels, ensuring compatibility with nnU-Net's expected schema and handling the specific characteristics of DRR imaging.\",\n  \"constraints_to_follow\": [\n    \"The output dataset.json must conform exactly to nnU-Net v2's expected schema.\",\n    \"The script must not make irreversible changes until the final step of writing dataset.json.\",\n    \"All file discovery must be robust and handle potential variations in naming or extensions.\",\n    \"Label values and image modalities must be determined from actual sample files rather than assumed.\",\n    \"The script must write the dataset.json to <dataset_root>/dataset.json.\",\n    \"DRR modality is non-standard; any implications for preprocessing must be handled carefully.\",\n    \"No validation or error recovery is built into the script itself—errors will surface later in nnU-Net pipeline.\"\n  ],\n  \"information_still_missing\": [\n    \"The exact integer value used to represent the foreground class in the label files.\",\n    \"The actual file extensions of the image and label files (e.g., .nii.gz, .nii).\",\n    \"The intensity range of the DRR images.\",\n    \"Whether DRR images are truly single-channel or contain multiple reconstructions.\",\n    \"Confirmation that the script targets nnU-Net v2 exclusively and not v1.\",\n    \"Whether the script should validate matching case counts between imagesTr/ and labelsTr/ directories.\"\n  ],\n  \"first_3_concrete_actions\": [\n    \"Inspect one sample image and one sample label file from the dataset to determine their actual file extensions, label value(s), and image properties such as shape and intensity range.\",\n    \"Define the complete nnU-Net v2 dataset.json schema including all required keys and structure to ensure compliance.\",\n    \"Implement a robust file discovery mechanism to enumerate all training cases in imagesTr/ and labelsTr/, accounting for possible variations in file naming or extension.\"\n  ]\n}",
+  "worker_response_json": {
+    "understood_goal": "Generate a valid nnU-Net v2 dataset.json file for a given dataset directory that contains DRR images and corresponding lung lobe segmentation labels, ensuring compatibility with nnU-Net's expected schema and handling the specific characteristics of DRR imaging.",
+    "constraints_to_follow": [
+      "The output dataset.json must conform exactly to nnU-Net v2's expected schema.",
+      "The script must not make irreversible changes until the final step of writing dataset.json.",
+      "All file discovery must be robust and handle potential variations in naming or extensions.",
+      "Label values and image modalities must be determined from actual sample files rather than assumed.",
+      "The script must write the dataset.json to <dataset_root>/dataset.json.",
+      "DRR modality is non-standard; any implications for preprocessing must be handled carefully.",
+      "No validation or error recovery is built into the script itself—errors will surface later in nnU-Net pipeline."
+    ],
+    "information_still_missing": [
+      "The exact integer value used to represent the foreground class in the label files.",
+      "The actual file extensions of the image and label files (e.g., .nii.gz, .nii).",
+      "The intensity range of the DRR images.",
+      "Whether DRR images are truly single-channel or contain multiple reconstructions.",
+      "Confirmation that the script targets nnU-Net v2 exclusively and not v1.",
+      "Whether the script should validate matching case counts between imagesTr/ and labelsTr/ directories."
+    ],
+    "first_3_concrete_actions": [
+      "Inspect one sample image and one sample label file from the dataset to determine their actual file extensions, label value(s), and image properties such as shape and intensity range.",
+      "Define the complete nnU-Net v2 dataset.json schema including all required keys and structure to ensure compliance.",
+      "Implement a robust file discovery mechanism to enumerate all training cases in imagesTr/ and labelsTr/, accounting for possible variations in file naming or extension."
+    ]
+  },
+  "deterministic_contract_checks": {
+    "planner_non_empty": true,
+    "planner_has_json_tail": true,
+    "worker_json_parse_ok": true,
+    "worker_required_fields_present": true,
+    "violations": []
+  },
+  "judge_instructions": [
+    "Evaluate information flow, not whether final code was produced.",
+    "Planner constraint coverage must be judged against gold_constraints that are reasonably inferable from the visible request; do not require impossible hidden details unless the episode rubric marks them critical.",
+    "Penalize planner false confidence when it gives worker a concrete wrong default instead of flagging a missing detail.",
+    "Reward worker output when it correctly flags missing information caused by a weak planner spec.",
+    "Score each dimension 0-2 and total to 0-10.",
+    "Return strict JSON only."
+  ],
+  "output_schema": {
+    "planner_constraint_coverage_score": "0-2",
+    "planner_risk_flagging_score": "0-2",
+    "worker_goal_alignment_score": "0-2",
+    "worker_missing_info_score": "0-2",
+    "worker_first_action_precision_score": "0-2",
+    "spec_score": "0-10",
+    "worker_score": "0-10",
+    "final_verdict": "spec_strong | spec_acceptable | spec_weak | spec_unsafe",
+    "covered_gold_constraints": [
+      "gold constraints captured by planner or worker"
+    ],
+    "missed_gold_constraints": [
+      "important gold constraints omitted or mishandled"
+    ],
+    "forbidden_assumptions_made": [
+      "wrong assumptions made by planner or worker"
+    ],
+    "separation_notes": "why this cell should or should not separate models",
+    "concise_rationale": "short evidence-based explanation"
+  }
+}

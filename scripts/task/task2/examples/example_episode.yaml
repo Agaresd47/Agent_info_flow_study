@@ -1,0 +1,34 @@
+episode_id: t2_example_spec_handoff
+project_id: example_pipeline
+context_type: data_preprocessing_script
+judge_spec: scripts/task/task2/examples/example_judge.yaml
+
+planner_input:
+  request_text: >
+    Write a handoff spec for a worker who needs to reorganize preprocessed case files
+    into a training dataset. The request has already been clarified at the user-intent
+    level; focus on implementation constraints and remaining engineering gaps.
+  design_summary: >
+    The repo uses one script per preprocessing stage and prefers resumable,
+    patient-level operations.
+  repo_summary:
+    modules:
+      - "<dataset_root>/cases/<case_id>/image.nii.gz"
+      - "<dataset_root>/cases/<case_id>/mask.nii.gz"
+      - "<output_root>/imagesTr/"
+      - "<output_root>/labelsTr/"
+    notes:
+      - "Case directories are independent."
+      - "Previous scripts use completion marker files."
+  file_index:
+    - "<dataset_root>/cases/case_001/image.nii.gz"
+    - "<dataset_root>/cases/case_001/mask.nii.gz"
+    - "<dataset_root>/cases/case_002/image.nii.gz"
+    - "<dataset_root>/cases/case_002/mask.nii.gz"
+
+worker_prompt_template_version: v1_structured_interpretation
+worker_expected_fields:
+  - understood_goal
+  - constraints_to_follow
+  - information_still_missing
+  - first_3_concrete_actions

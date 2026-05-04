@@ -1,0 +1,33 @@
+{
+  "planner_constraint_coverage_score": 1,
+  "planner_risk_flagging_score": 1,
+  "worker_goal_alignment_score": 2,
+  "worker_missing_info_score": 1,
+  "worker_first_action_precision_score": 1,
+  "spec_score": 2,
+  "worker_score": 4,
+  "final_verdict": "spec_weak",
+  "covered_gold_constraints": [
+    "Single-class foreground: lung_lower_lobe_right",
+    "Modality is DRR",
+    "dataset.json should follow nnU-Net v2 schema at a high level"
+  ],
+  "missed_gold_constraints": [
+    "nnU-Net v2 uses channel_name as a dict with string keys, not a modality array/field",
+    "labels keys must be strings ('0', '1'), not integers",
+    "Training image filenames should use <case_id>_0000.nii.gz",
+    "labelsTr filenames should be <case_id>.nii.gz without _0000",
+    "training entries must use relative paths with './imagesTr/' and './labelsTr/'",
+    "test entries must use './imagesTs/' paths",
+    "file_ending must be present and set to .nii.gz",
+    "tensorImageSize must be omitted in v2"
+  ],
+  "forbidden_assumptions_made": [
+    "Planner introduced a wrong nnU-Net v2 default by calling for a 'modality' field instead of channel_name",
+    "Planner assumed image/label extensions were unknown and allowed any matching extension without grounding it in the actual v2 requirement",
+    "Worker treated the underspecified handoff as effectively complete instead of surfacing the critical nnU-Net v2 schema gaps",
+    "Worker suggested including or omitting imagesTs without anchoring the decision to the required test-list path schema"
+  ],
+  "separation_notes": "This episode separates models that know the nnU-Net v2 dataset.json schema from those that only preserve the high-level task. The planner and worker both preserve the task intent, but neither exposes the key v2 schema pitfalls, especially channel_name vs modality, string label keys, and exact relative path/file-name conventions.",
+  "concise_rationale": "The planner captured the task and some surface constraints, but missed several critical nnU-Net v2 requirements and even used an incorrect 'modality' framing. The worker accurately restated the broad goal and asked about extensions, but failed to identify the most important hidden schema constraints, so it did not expose the gaps in the handoff."
+}

@@ -1,0 +1,36 @@
+fixture_id: t1_pilot_heart_mask_merge_cleanup
+workspace_root: /data/project/segmentation
+
+tree:
+  /data/project/segmentation:
+    dirs:
+      - heart
+      - mask
+    files: {}
+
+  /data/project/segmentation/heart:
+    dirs:
+      - patient001
+      - patient002
+    files: {}
+
+  /data/project/segmentation/heart/patient001:
+    dirs: []
+    files:
+      aorta.nii.gz: "NIFTI_PLACEHOLDER_aorta"
+      heart.nii.gz: "NIFTI_PLACEHOLDER_heart"
+
+  /data/project/segmentation/heart/patient002:
+    dirs: []
+    files:
+      heart.nii.gz: "NIFTI_PLACEHOLDER_heart_2"
+
+  /data/project/segmentation/mask:
+    dirs:
+      - patient001
+    files: {}
+
+  /data/project/segmentation/mask/patient001:
+    dirs: []
+    files:
+      heart.nii.gz: "EXISTING_MASK_CONFLICT"

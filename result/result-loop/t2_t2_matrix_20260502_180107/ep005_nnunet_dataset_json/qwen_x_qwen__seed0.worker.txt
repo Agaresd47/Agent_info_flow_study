@@ -1,0 +1,25 @@
+{
+  "understood_goal": "Generate a `dataset.json` file for an nnU-Net v2 dataset following the specified directory structure and conventions, ensuring proper mapping between training images and labels, and optionally including test cases if present.",
+  "constraints_to_follow": [
+    "Case IDs must align between images and labels based on filename prefixes (e.g., `case001`).",
+    "Only training cases should be included in the `training` field of `dataset.json`.",
+    "Test cases should be listed under the `test` field if they exist.",
+    "Schema fields must conform to nnU-Net v2 specification.",
+    "File extensions for images and labels are `.nii.gz`.",
+    "The `dataset.json` will be generated in the dataset root directory (`Dataset001_LungLobeRight/`).",
+    "All training images and labels have corresponding filenames with consistent prefixes.",
+    "Test set files are named consistently with training set files."
+  ],
+  "information_still_missing": [
+    "Exact required and optional fields in the nnU-Net v2 `dataset.json` schema, including rules for `description`, `reference`, `licence`, `release`, etc.",
+    "Whether relative or absolute paths should be used in the JSON and what the expected base path context is.",
+    "Guarantee that all files in `imagesTr/` and `labelsTr/` have `.nii.gz` extension; whether test set files in `imagesTs/` also follow this convention.",
+    "If the presence of `imagesTs/` alone is sufficient to include test cases in `dataset.json`, or if matching label files in `labelsTs/` must also be verified.",
+    "How strictly the case ID must match between image and label files (e.g., whether `case001_0000.nii.gz` implies `case001.nii.gz`)."
+  ],
+  "first_3_concrete_actions": [
+    "Verify the contents of `imagesTr/` and `labelsTr/` to confirm consistent `.nii.gz` file naming and ensure each image has a corresponding label.",
+    "Check for the existence of `imagesTs/` and optionally `labelsTs/` to determine if test cases should be included and validate their file naming consistency.",
+    "Consult the nnU-Net v2 documentation or schema definition to identify the exact required and optional fields for `dataset.json` to ensure compliance."
+  ]
+}

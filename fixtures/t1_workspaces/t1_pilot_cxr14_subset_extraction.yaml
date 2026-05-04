@@ -1,0 +1,25 @@
+fixture_id: t1_pilot_cxr14_subset_extraction
+workspace_root: /data/project/cxr14
+
+tree:
+  /data/project/cxr14:
+    dirs:
+      - images
+      - subset_output
+    files:
+      Data_Entry_2017.csv: |
+        Image Index,Finding Labels,Follow-up #,Patient ID,Patient Age,Patient Gender,View Position
+        00000001_000.png,No Finding,0,1,57,M,PA
+        00000002_000.png,Nodule,0,2,61,F,AP
+        00000003_000.png,Pneumonia|Effusion,0,3,48,M,PA
+
+  /data/project/cxr14/images:
+    dirs: []
+    files:
+      00000001_000.png: "PNG_PLACEHOLDER_1"
+      00000002_000.png: "PNG_PLACEHOLDER_2"
+      00000003_000.png: "PNG_PLACEHOLDER_3"
+
+  /data/project/cxr14/subset_output:
+    dirs: []
+    files: {}

@@ -1,0 +1,27 @@
+{
+  "understood_goal": "Combine masks of similar structures from CT scan data into single binary masks, then fill these with CT intensity values to create 'real-intensity masks'. The process should handle multiple mask files per patient, ensure alignment with CT scans, and support resumable execution.",
+  "constraints_to_follow": [
+    "Support resuming from previous runs if interrupted",
+    "Avoid overwriting existing outputs unless explicitly instructed",
+    "Handle large datasets efficiently with speed prioritized",
+    "Ensure intermediate steps do not corrupt or lose data during processing",
+    "No destructive writes to input directories",
+    "Track completion status per patient to allow resumption",
+    "CT scan and mask volumes must have matching spatial dimensions and affine transformations",
+    "Worker must not modify original input files; outputs go to designated location"
+  ],
+  "information_still_missing": [
+    "Exact naming convention for grouping masks (e.g., how to determine that `rib_left_1`, `rib_left_2` belong to the same class)",
+    "Whether there is a predefined list of structure categories or if they must be inferred from filenames",
+    "How the boundary between foreground structures and background (soft tissue) is defined in step 3",
+    "What constitutes a 'completion marker' for a processed patient (e.g., a specific file or flag)",
+    "Whether the worker should overwrite existing outputs or skip already-completed patients",
+    "Specific requirements for handling mismatched dimensions or affine matrices between CT and mask files",
+    "Any schema versioning or metadata requirements for output files beyond basic NIfTI format"
+  ],
+  "first_3_concrete_actions": [
+    "Identify the exact naming pattern or rules used to group related mask files (e.g., prefix/suffix logic)",
+    "Define how completion status will be tracked (e.g., existence of a marker file per patient)",
+    "Clarify whether existing outputs should be overwritten or skipped when resuming execution"
+  ]
+}

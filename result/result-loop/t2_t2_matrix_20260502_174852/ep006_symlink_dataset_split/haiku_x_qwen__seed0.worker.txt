@@ -1,0 +1,25 @@
+{
+  "understood_goal": "Assemble an nnU-Net dataset by creating symlinks from input DRR images and organ masks organized by patient and organ/part, splitting patients into train/test/validation sets with an 8:1:1 ratio.",
+  "constraints_to_follow": [
+    "Use symlinks (not copies) to link input files to output directories",
+    "Ensure symlinks point to correct and resolvable paths (absolute or relative)",
+    "Maintain deterministic patient splitting using a seed or sorted order",
+    "Handle multi-part organs by linking each part individually",
+    "Fail safely if target symlinks already exist",
+    "Parse patient IDs consistently from filenames",
+    "Validate that all required input files exist for each patient"
+  ],
+  "information_still_missing": [
+    "Exact format and schema of organ_list.txt (e.g., flat list or organ-to-parts mapping)",
+    "Expected nnU-Net output directory structure (e.g., imagesTr/, labelsTr/, etc.)",
+    "How multi-part masks per organ per patient should be organized in the output",
+    "Whether symlinks should use absolute or relative paths",
+    "The deterministic seed or ordering method for the 8:1:1 split",
+    "How to handle missing patients or organs (skip, fail, or warn)"
+  ],
+  "first_3_concrete_actions": [
+    "Inspect the content of organ_list.txt to determine its format and parseability",
+    "Define or confirm the expected nnU-Net output directory structure (e.g., imagesTr/, labelsTr/)",
+    "Implement a robust patient ID extraction function that handles potential naming inconsistencies"
+  ]
+}

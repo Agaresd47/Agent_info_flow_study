@@ -1,0 +1,19 @@
+assets:
+  - task_path: data/t1_tasks/cxr14_subset_extraction.yaml
+    judge_path: data/t1_tasks/judges/cxr14_subset_extraction.judge.yaml
+    fixture_path: fixtures/t1_workspaces/t1_pilot_cxr14_subset_extraction.yaml
+  - task_path: data/t1_tasks/heart_mask_merge_cleanup.yaml
+    judge_path: data/t1_tasks/judges/heart_mask_merge_cleanup.judge.yaml
+    fixture_path: fixtures/t1_workspaces/t1_pilot_heart_mask_merge_cleanup.yaml
+  - task_path: data/t1_tasks/totalseg_mask_quarantine.yaml
+    judge_path: data/t1_tasks/judges/totalseg_mask_quarantine.judge.yaml
+    fixture_path: fixtures/t1_workspaces/t1_pilot_totalseg_mask_quarantine.yaml
+  - task_path: data/t1_tasks/code_export_zip_sanitizer.yaml
+    judge_path: data/t1_tasks/judges/code_export_zip_sanitizer.judge.yaml
+    fixture_path: fixtures/t1_workspaces/t1_code_export_zip_sanitizer.yaml
+  - task_path: data/t1_tasks/drr_quality_quarantine_inventory.yaml
+    judge_path: data/t1_tasks/judges/drr_quality_quarantine_inventory.judge.yaml
+    fixture_path: fixtures/t1_workspaces/t1_drr_quality_quarantine_inventory.yaml
+  - task_path: data/t1_tasks/nnunet_cli_inference_plan.yaml
+    judge_path: data/t1_tasks/judges/nnunet_cli_inference_plan.judge.yaml
+    fixture_path: fixtures/t1_workspaces/t1_nnunet_cli_inference_plan.yaml

@@ -1,0 +1,29 @@
+{
+  "understood_goal": "Correct spatial misalignment between CT images and TotalSeg-derived masks by extracting and cleaning reference affines from CT files, applying QR decomposition to isolate and standardize rotation/spacing, aligning sign conventions across all mask files in each patient directory, and writing corrected affines in parallel across ~3000 patients.",
+  "constraints_to_follow": [
+    "Never overwrite mask files in-place without a backup or staging strategy.",
+    "Must validate corrected affines before writing to ensure numerical stability and correctness.",
+    "Implement a clear failure handling policy for individual patients or mask files (e.g., skip, log, or fail job).",
+    "Adhere to a defined sign convention for QR decomposition to avoid inconsistent flipping of signs across masks.",
+    "Ensure parallelization does not lead to resource exhaustion or I/O contention.",
+    "Use a checkpoint/resume mechanism to prevent reprocessing or skipping patients when job restarts."
+  ],
+  "information_still_missing": [
+    "Exact file naming convention or glob pattern for mask files in each patient directory.",
+    "Root input path or directory structure for patient data.",
+    "Whether the cleaned affine should preserve only spacing and translation, or also some rotation components.",
+    "Precise sign-alignment rule for QR decomposition (e.g., ensure diagonal of R is positive).",
+    "Write safety policy: overwrite in-place, write to staging, or create backups?",
+    "Validation criteria for corrected affines (e.g., determinant bounds, spacing magnitude thresholds).",
+    "Failure handling strategy: skip patient, fail job, or log and continue?",
+    "Parallelism strategy: per-patient workers, per-file workers, or thread pool?",
+    "Checkpoint/resume mechanism: use .done flag files, database, or log entries?",
+    "Preferred NIfTI library (nibabel, SimpleITK, etc.) for reading/writing.",
+    "Log destination and verbosity level."
+  ],
+  "first_3_concrete_actions": [
+    "Request a sample patient directory listing to confirm file naming and directory structure.",
+    "Confirm the exact sign-alignment rule for QR decomposition (e.g., make diagonal of R positive).",
+    "Define the write safety strategy (backup original files, write to staging area, or use a dry-run mode)."
+  ]
+}

@@ -1,0 +1,47 @@
+fixture_id: t1_pilot_totalseg_mask_quarantine
+workspace_root: /data/project/anycxr
+
+tree:
+  /data/project/anycxr:
+    dirs:
+      - totalseg_exports
+      - quarantine
+    files: {}
+
+  /data/project/anycxr/totalseg_exports:
+    dirs:
+      - patientA
+      - patientB
+    files: {}
+
+  /data/project/anycxr/totalseg_exports/patientA:
+    dirs:
+      - segmentations
+    files: {}
+
+  /data/project/anycxr/totalseg_exports/patientA/segmentations:
+    dirs: []
+    files:
+      heart.nii.gz: "NIFTI_PLACEHOLDER_heart"
+      lungs.nii.gz: "NIFTI_PLACEHOLDER_lungs"
+      spleen.nii.gz: "NIFTI_PLACEHOLDER_spleen"
+
+  /data/project/anycxr/totalseg_exports/patientB:
+    dirs:
+      - masks
+    files: {}
+
+  /data/project/anycxr/totalseg_exports/patientB/masks:
+    dirs: []
+    files:
+      aorta.nii.gz: "NIFTI_PLACEHOLDER_aorta"
+      liver.nii.gz: "NIFTI_PLACEHOLDER_liver"
+
+  /data/project/anycxr/quarantine:
+    dirs:
+      - unused_masks
+    files: {}
+
+  /data/project/anycxr/quarantine/unused_masks:
+    dirs: []
+    files: {}

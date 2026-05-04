@@ -1,0 +1,25 @@
+tasks:
+  - "data/t1_tasks/cxr14_subset_extraction.yaml"
+  - "data/t1_tasks/heart_mask_merge_cleanup.yaml"
+  - "data/t1_tasks/totalseg_mask_quarantine.yaml"
+  - "data/t1_tasks/code_export_zip_sanitizer.yaml"
+  - "data/t1_tasks/drr_quality_quarantine_inventory.yaml"
+  - "data/t1_tasks/nnunet_cli_inference_plan.yaml"
+
+runners:
+  - label: "haiku_4_5"
+    model_id: "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+  - label: "qwen3_coder_30b"
+    model_id: "qwen.qwen3-coder-30b-a3b-v1:0"
+  - label: "glm_4_7_flash"
+    model_id: "zai.glm-4.7-flash"
+  - label: "kimi_k2_5"
+    model_id: "moonshotai.kimi-k2.5"
+
+judge_model: "gpt-5.4-mini"
+condition: "A2"
+runner_visibility: "benchmark"
+fail_on_leak: true
+max_runner_tokens: 1200
+max_judge_tokens: 1800
+out_dir: "run_result/Chat_test/output/A2"

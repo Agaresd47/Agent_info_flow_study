@@ -1,0 +1,25 @@
+{
+  "understood_goal": "Preprocess CT and mask data for a patient by merging masks, generating real-intensity masks per structure, and creating a soft tissue CT output, with support for resuming interrupted processing.",
+  "constraints_to_follow": [
+    "Each patient must have exactly one CT file and one mask folder named <patient_id>_total.",
+    "Mask files within a patient's mask folder must be in NIfTI format (.nii.gz).",
+    "CT and mask images must have matching spatial resolution and orientation.",
+    "Masks must be grouped by structure type based on filename parsing, with logical OR operations applied within each group.",
+    "Real-intensity masks must replace foreground values with corresponding CT intensities and fill non-foreground voxels with a specified background value.",
+    "Soft tissue CT output must treat all merged structure masks as foreground and fill remaining voxels with a specified background value.",
+    "A mechanism must exist to mark completion of processing per patient to enable resume capability.",
+    "If partial output exists, it must not be overwritten unless explicitly allowed."
+  ],
+  "information_still_missing": [
+    "How structure types are determined from filenames—no explicit naming convention or mapping provided.",
+    "The expected background fill value for real-intensity masks.",
+    "The expected background fill value for soft tissue CT output.",
+    "The specific format or method used to mark completion of processing per patient.",
+    "Whether the worker should overwrite existing outputs or skip if they already exist."
+  ],
+  "first_3_concrete_actions": [
+    "Define a clear strategy for parsing mask filenames to identify structure types, including potential regex or mapping rules.",
+    "Determine and document the background fill values for both real-intensity masks and soft tissue CT output.",
+    "Specify the completion marker mechanism (e.g., .done file, metadata log) and overwrite policy for handling existing outputs."
+  ]
+}

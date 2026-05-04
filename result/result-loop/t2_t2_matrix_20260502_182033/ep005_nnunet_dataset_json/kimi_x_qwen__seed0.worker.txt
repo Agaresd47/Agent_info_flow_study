@@ -1,0 +1,27 @@
+{
+  "understood_goal": "Generate a valid nnU-Net v2 dataset.json file for a lung lower lobe right segmentation task using DRR images, ensuring correct structure, path formatting, and validation of dataset integrity.",
+  "constraints_to_follow": [
+    "Use the dataset directory name 'Dataset001_LungLobeRight' as the 'name' field in dataset.json",
+    "Ensure all relative paths in JSON start with './' and use forward slashes",
+    "Validate that each image in imagesTr/ has a corresponding label in labelsTr/ with matching case IDs",
+    "Confirm consistent file extensions across all training data (e.g., .nii.gz)",
+    "Do not overwrite existing dataset.json unless explicitly allowed by policy",
+    "Write output atomically by creating a temporary file and renaming it",
+    "Verify required fields are present after writing the JSON file"
+  ],
+  "information_still_missing": [
+    "Exact file extension for images and labels (.nii.gz, .nii, .mha, .png, etc.)",
+    "Value for 'tensorImageSize' field ('2D' or '3D')",
+    "Whether test images from imagesTs/ should be included in the 'test' field of dataset.json",
+    "Required values for 'description', 'reference', 'licence', and 'release' fields",
+    "Overwrite policy if dataset.json already exists",
+    "Whether label files should be validated to contain only values {0, 1}",
+    "Specific case naming conventions beyond 'case_id_0000.ext' / 'case_id.ext'",
+    "Support level of DRR modality in nnU-Net v2 (native or requires conversion)"
+  ],
+  "first_3_concrete_actions": [
+    "Enumerate the contents of imagesTr/, labelsTr/, and imagesTs/ to determine actual filenames and extensions",
+    "Validate pairing between imagesTr/ and labelsTr/ by checking for matching case IDs and report any orphans",
+    "Read or create a placeholder dataset.json template with fixed fields like 'modality', 'labels', and derive 'name' from directory name"
+  ]
+}

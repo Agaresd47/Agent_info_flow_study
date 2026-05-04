@@ -1,0 +1,31 @@
+{
+  "understood_goal": "Implement a pipeline to process CT scans and their associated TotalSeg masks by combining masks into anatomical categories, extracting CT intensities within those regions, generating a foreground mask, and creating a soft-tissue fallback mask for each patient.",
+  "constraints_to_follow": [
+    "Support resumption after mid-pipeline failure",
+    "Enable multi-machine parallelization with speed prioritized",
+    "Process each patient independently",
+    "Handle missing or corrupted CT/mask files gracefully",
+    "Ensure output files are written to <output_root>/<patient_id>/",
+    "Use NIfTI format for all input/output files",
+    "All mask files are in the same directory per patient",
+    "Mask files are binary or can be thresholded to binary",
+    "Patient IDs are extractable from CT filenames (stem before .nii.gz)",
+    "Output directory can be created if it does not exist",
+    "Worker has read/write access to dataset_root and output_root"
+  ],
+  "information_still_missing": [
+    "Exact mapping from TotalSeg structure names to anatomical categories (regex patterns or lookup table)",
+    "File format and data type of mask files (e.g., .nii.gz, uint8, uint16, float32)",
+    "Definition of 'real-intensity mask': should it be a single volume per structure with CT intensities inside the mask and zeros outside?",
+    "How to handle non-foreground voxels in soft-tissue fallback (preserve original CT, set to constant, apply windowing?)",
+    "Resumption marker strategy (sentinel file, output directory completeness check, timestamp comparison?)",
+    "Concurrency control mechanism for multi-machine safety (lock files, database flags, work queue?)",
+    "Whether patient list should be discovered by scanning CT directory or provided externally",
+    "Error handling protocol for missing or corrupted CT/mask files"
+  ],
+  "first_3_concrete_actions": [
+    "Validate inputs by listing all patient IDs from <dataset_root>/ct/ and confirming at least one has corresponding mask directories in <dataset_root>/mask/",
+    "Inspect a sample CT and one mask file to verify format, shape, and data type",
+    "Ask for clarification on mask grouping rules, real-intensity mask semantics, and soft-tissue fallback behavior before proceeding further"
+  ]
+}

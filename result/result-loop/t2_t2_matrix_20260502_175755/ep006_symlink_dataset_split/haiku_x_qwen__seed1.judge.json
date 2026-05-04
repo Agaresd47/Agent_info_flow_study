@@ -1,0 +1,36 @@
+{
+  "planner_constraint_coverage_score": 1,
+  "planner_risk_flagging_score": 1,
+  "worker_goal_alignment_score": 1,
+  "worker_missing_info_score": 1,
+  "worker_first_action_precision_score": 1,
+  "spec_score": 4,
+  "worker_score": 5,
+  "final_verdict": "spec_weak",
+  "covered_gold_constraints": [
+    "Uses symlinks rather than copies in the assembly workflow",
+    "Splits patients into train/test/validation with an 8:1:1 ratio",
+    "Acknowledges organ_list.txt as the source of organ-part mapping",
+    "Recognizes that organs can have multiple parts"
+  ],
+  "missed_gold_constraints": [
+    "Did not specify ct_no_bed symlinks must also be created in each split output",
+    "Did not capture the organ→suffix mapping asymmetry: Heart uses _heart while the others use _total",
+    "Did not preserve the reproducibility requirement for the split (fixed seed or persisted split file)",
+    "Did not mention train.txt / test.txt / validation.txt outputs",
+    "Did not mention missing parts should be logged to missing_parts.log without stopping",
+    "Did not mention automatic mkdir for missing parent directories",
+    "Did not mention source-file-missing behavior should skip and log rather than fail",
+    "Did not mention patient-level parallelism"
+  ],
+  "forbidden_assumptions_made": [
+    "Planner assumed a relative symlink policy even though symlink path policy was unspecified",
+    "Planner and worker assumed a flat per-split output structure without grounding in the request",
+    "Worker assumed patient IDs are extracted as the first underscore-delimited component",
+    "Worker assumed patient IDs are globally unique across all organs",
+    "Worker assumed no existing files in output directories and undefined collision behavior",
+    "Worker assumed all .jpg files in organ subdirectories are valid mask parts without filtering"
+  ],
+  "separation_notes": "This episode separates models on whether they preserve the hidden but critical filesystem and split-determinism constraints, versus filling gaps with convenient defaults. The planner partially captures the task shape, but both planner and worker introduce unsupported assumptions instead of cleanly surfacing the missing contract details.",
+  "concise_rationale": "The planner preserved the high-level symlinked 8:1:1 split idea and organ-part mapping, but missed several critical constraints, especially reproducibility, ct_no_bed linking, missing-parts logging, and output manifest files. The worker aligned with the broad goal and flagged some gaps, but it also accepted several unsupported defaults (relative paths, flat layout, patient ID parsing, uniqueness, no-collision policy) as if they were facts, which weakens handoff quality."
+}

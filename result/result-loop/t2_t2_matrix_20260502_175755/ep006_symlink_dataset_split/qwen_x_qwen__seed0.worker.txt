@@ -1,0 +1,26 @@
+{
+  "understood_goal": "Create an nnU-Net compliant dataset split (train/test/validation) using symbolic links from input DRR image directories, respecting patient-level consistency and organ-to-part mappings defined in organ_list.txt.",
+  "constraints_to_follow": [
+    "Use symbolic links to avoid copying data.",
+    "Respect patient-level consistency in splits — no partial patients in multiple splits.",
+    "Follow the exact organ-to-part mapping from organ_list.txt.",
+    "Do not modify or delete any input files.",
+    "Do not overwrite existing output files or directories unless explicitly instructed (which is not the case here).",
+    "Ensure file extensions are strictly .jpg.",
+    "Organ directories must follow consistent naming patterns: <organ_name>/<patient_id>_<organ_name>/<part>.jpg.",
+    "All organ directories must contain the same set of patient IDs."
+  ],
+  "information_still_missing": [
+    "Exact format of organ_list.txt (newline-delimited, tab-separated, etc.)",
+    "Whether validation of uniform patient IDs across organ directories is required",
+    "Handling of special characters in patient IDs",
+    "Policy for missing organs or parts in some patients",
+    "Requirement for a completion marker or checkpoint mechanism",
+    "Enforcement of deterministic shuffling based on seed"
+  ],
+  "first_3_concrete_actions": [
+    "Parse organ_list.txt to extract organ-to-part mappings while confirming its format and structure.",
+    "Identify and validate all unique patient IDs across organ directories to ensure consistency.",
+    "Verify the directory structure and file naming conventions match the assumptions before proceeding with symbolic link creation."
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "condition": "B1_guardrailed",
+  "seed": 0,
+  "episode_id": "ep005_nnunet_dataset_json",
+  "planner_spec": "### Implementation Plan\n\n#### Observed Facts:\n- Dataset root: `<dataset_root>/Dataset001_LungLobeRight`\n- Training images: `imagesTr/` directory\n- Training labels: `labelsTr/` directory\n- Test images: `imagesTs/` directory\n- File format: `.nii.gz`\n- Naming convention: `case_XXX_0000.nii.gz` for images, `case_XXX.nii.gz` for labels\n- Single foreground class: `lung_lower_lobe_right`\n- Modality: DRR (not CT)\n- Using nnU-Net v2 schema\n\n#### Assumptions:\n- All training image files have corresponding label files with matching base names (`case_XXX_0000.nii.gz` → `case_XXX.nii.gz`)\n- Test set images are named consistently with training set naming rules\n- The `imagesTr`, `labelsTr`, and `imagesTs` directories contain only relevant files (no stray or duplicate files)\n- The worker will scan all `.nii.gz` files in each directory to build the dataset JSON\n- No additional metadata beyond what's required by nnU-Net v2 schema is needed\n\n#### Constraints:\n- Case IDs must be aligned between images and labels based on filename prefix (e.g., `case_001_0000.nii.gz` matches `case_001.nii.gz`)\n- Only files ending in `.nii.gz` should be considered\n- The test set must be included in the JSON if present\n- Paths in the JSON must reflect the actual structure under the dataset root\n- Schema version is strictly nnU-Net v2; no backward compatibility assumed\n\n#### Risks:\n- Incorrect alignment of case IDs between images and labels could lead to mislabeled data during training\n- Including non-matching test cases may cause pipeline failures\n- Overwriting existing `dataset.json` without confirmation could result in loss of manual edits\n- Misinterpretation of schema fields can break downstream processing\n\n#### Open Questions:\n1. **Schema Field Definitions**: What are the exact required and optional fields in the nnU-Net v2 `dataset.json` schema? Are there specific validation rules for these fields?\n2. **Path Handling**: Should relative paths be used inside the JSON, or absolute paths? If relative, how should they be defined relative to the dataset root?\n3. **Test Set Inclusion**: Is there a requirement to distinguish test cases from training cases in the JSON structure, or is inclusion sufficient?\n4. **File Selector Semantics**: How should the script handle multiple `.nii.gz` files per case (e.g., if both `case_001_0000.nii.gz` and `case_001_0001.nii.gz` exist)?\n5. **Completion Marker Policy**: Is there a mechanism to avoid reprocessing an already-generated `dataset.json`?\n6. **Overwrite Policy**: Should the script overwrite an existing `dataset.json` silently, or warn before doing so?\n\n---\n\n```json\n{\n  \"assumptions\": [\n    \"All training image files have corresponding label files with matching base names.\",\n    \"Test set images are named consistently with training set naming rules.\",\n    \"The worker will scan all .nii.gz files in each directory to build the dataset JSON.\",\n    \"No additional metadata beyond what's required by nnU-Net v2 schema is needed.\"\n  ],\n  \"risks\": [\n    \"Incorrect alignment of case IDs between images and labels could lead to mislabeled data during training.\",\n    \"Including non-matching test cases may cause pipeline failures.\",\n    \"Overwriting existing dataset.json without confirmation could result in loss of manual edits.\",\n    \"Misinterpretation of schema fields can break downstream processing.\"\n  ],\n  \"open_questions\": [\n    \"What are the exact required and optional fields in the nnU-Net v2 dataset.json schema?\",\n    \"Should relative paths be used inside the JSON, or absolute paths? If relative, how should they be defined?\",\n    \"Is there a requirement to distinguish test cases from training cases in the JSON structure?\",\n    \"How should the script handle multiple .nii.gz files per case?\",\n    \"Is there a mechanism to avoid reprocessing an already-generated dataset.json?\",\n    \"Should the script overwrite an existing dataset.json silently, or warn before doing so?\"\n  ]\n}\n```",
+  "task": "Interpret the planner spec. Do not use outside knowledge except general engineering caution.",
+  "output_schema": {
+    "understood_goal": "string",
+    "constraints_to_follow": [
+      "specific constraints stated or strongly implied by the planner spec"
+    ],
+    "information_still_missing": [
+      "missing information that blocks safe implementation"
+    ],
+    "first_3_concrete_actions": [
+      "the first three actions you would take before writing final code"
+    ]
+  },
+  "instructions": [
+    "Return strict JSON only.",
+    "If the planner spec omits something important, put it in information_still_missing instead of inventing it.",
+    "Do not assume hidden dataset schema, file naming, algorithm details, or safety policy."
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "understood_goal": "Process CT scans and corresponding TotalSeg masks to generate combined masks, real-intensity masked CTs, and soft-tissue modified CTs, with support for crash recovery and parallel execution.",
+  "constraints_to_follow": [
+    "Input CT scans and masks must be in NIfTI format and aligned in space.",
+    "Processing must support resumption after crashes by checking explicit completion markers.",
+    "Multi-machine parallel execution is required.",
+    "Memory usage must be managed to avoid exceeding available RAM.",
+    "All output files must be written atomically to prevent corruption on crash.",
+    "CT and mask volumes must have identical spatial dimensions and coordinate systems.",
+    "The pipeline must handle errors gracefully without halting the entire batch unless necessary."
+  ],
+  "information_still_missing": [
+    "Complete mapping of structure names to grouping categories (e.g., which masks belong to 'rib' category).",
+    "Behavior for unmapped structure names (ignore, error, or default group).",
+    "Value to use for background voxels in both 'real-intensity mask' and 'soft-tissue CT' outputs.",
+    "Explicit list of files that must exist in the output directory to mark a patient as complete.",
+    "Which steps should be skipped during resumption if partial outputs exist.",
+    "Policy for handling single-patient failures (halt batch or continue).",
+    "Target throughput and typical patient volume sizes for performance tuning.",
+    "Whether spatial alignment (resampling/registration) is required or assumed pre-aligned."
+  ],
+  "first_3_concrete_actions": [
+    "Define a static configuration file or database containing the structure-to-group mapping rules.",
+    "Create a patient state machine with explicit states (`pending`, `masks_combined`, `intensity_filled`, `complete`, `failed`) and define how each step transitions to the next.",
+    "Implement a resumption mechanism that checks for completion markers in the output directory and skips already-completed steps accordingly."
+  ]
+}

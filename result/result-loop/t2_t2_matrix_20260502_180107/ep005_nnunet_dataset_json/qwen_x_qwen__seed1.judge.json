@@ -1,0 +1,31 @@
+{
+  "planner_constraint_coverage_score": 1,
+  "planner_risk_flagging_score": 1,
+  "worker_goal_alignment_score": 1,
+  "worker_missing_info_score": 1,
+  "worker_first_action_precision_score": 0,
+  "spec_score": 2,
+  "worker_score": 3,
+  "final_verdict": "spec_weak",
+  "covered_gold_constraints": [
+    "Test cases in imagesTs should not be included in training",
+    "Paths should be relative/configurable rather than hardcoded",
+    "No destructive file operations"
+  ],
+  "missed_gold_constraints": [
+    "nnU-Net v2 schema requires channel_name as a dict, not a modality array",
+    "labels keys must be strings ('0', '1'), not integers",
+    "Training image filenames must follow <case_id>_0000.nii.gz and labelsTr files must be <case_id>.nii.gz",
+    "training entries must use './imagesTr/' and './labelsTr/' relative prefixes",
+    "test entries must use './imagesTs/' relative paths",
+    "file_ending must be present and set to '.nii.gz'",
+    "tensorImageSize must be omitted in v2"
+  ],
+  "forbidden_assumptions_made": [
+    "Planner assumed file extensions were unknown and left them open, despite the visible task requiring explicit v2 handling",
+    "Planner treated schema details as open questions instead of capturing known nnU-Net v2 constraints",
+    "Worker implicitly accepted the planner's weak schema uncertainty without surfacing the known v2 field requirements"
+  ],
+  "separation_notes": "This episode separates models mainly on whether they preserve nnU-Net v2 schema specifics from a weak handoff. The planner only preserved generic pairing/path constraints and missed multiple critical v2 details. The worker correctly kept some uncertainty visible, but did not recover the schema facts or expose the key v2 pitfalls strongly enough.",
+  "concise_rationale": "The planner captured only generic dataset-building concerns and missed the core nnU-Net v2 dataset.json requirements. The worker preserved the high-level intent and flagged missing details, but it did not identify the specific v2 schema constraints (channel_name dict, string labels, _0000 naming, relative prefixes, file_ending, no tensorImageSize). Overall this is a weak spec with partial but insufficient worker recovery."
+}

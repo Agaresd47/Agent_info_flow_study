@@ -1,0 +1,20 @@
+defaults:
+  task_paths:
+    - data/t1_tasks/test_ground/t1_cli_low_bad_slice_ct_mask_move.yaml
+    - data/t1_tasks/test_ground/t1_cli_symlink_split_idempotent_guarded.yaml
+  output_dir: run_result/CLI_test/output/A0_interactive
+  max_turns: 14
+  bash_candidates:
+    - C:\Program Files\Git\bin\bash.exe
+    - C:\Program Files\Git\usr\bin\bash.exe
+    - C:\msys64\usr\bin\bash.exe
+
+runners:
+  - label: haiku_4_5
+    model_id: us.anthropic.claude-haiku-4-5-20251001-v1:0
+  - label: qwen3_coder_30b
+    model_id: qwen.qwen3-coder-30b-a3b-v1:0
+  - label: glm_4_7_flash
+    model_id: zai.glm-4.7-flash
+  - label: kimi_k2_5
+    model_id: moonshotai.kimi-k2.5

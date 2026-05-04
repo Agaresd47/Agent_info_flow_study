@@ -1,0 +1,29 @@
+{
+  "understood_goal": "Generate a valid nnU-Net v2 dataset.json file for a right lower lobe lung segmentation task using DRR modality data, following the specified directory structure and labeling conventions.",
+  "constraints_to_follow": [
+    "Use nnU-Net v2 dataset.json schema exclusively (not v1)",
+    "The dataset root path must be provided as a parameter or user input",
+    "Training images and labels must be paired by filename convention in imagesTr/ and labelsTr/",
+    "Test images in imagesTs/ do not require corresponding labels",
+    "Label class 'lung_lower_lobe_right' must map to an integer label (assumed to be 1 for single-class segmentation)",
+    "Modality field should accept 'DRR' as a value unless specified otherwise",
+    "File extensions within each directory must be consistent",
+    "Overwriting an existing dataset.json is acceptable",
+    "All training and test image files must be discovered programmatically without hardcoding names"
+  ],
+  "information_still_missing": [
+    "Exact nnU-Net v2 dataset.json schema definition including required fields and structure",
+    "Specific file extensions to search for in imagesTr/, labelsTr/, and imagesTs/",
+    "Integer label value mapping for 'lung_lower_lobe_right'",
+    "Whether 'DRR' is a valid modality string in nnU-Net v2 or needs to be mapped",
+    "Number of imaging channels per image (single DRR or multiple)",
+    "Target output path for dataset.json (dataset_root/ or Dataset001_LungLobeRight/)",
+    "Policy for handling existing dataset.json (fail, warn, overwrite)",
+    "Validation requirements for image-label pairing and metadata inspection"
+  ],
+  "first_3_concrete_actions": [
+    "Identify authoritative source for nnU-Net v2 dataset.json schema to confirm required fields and format",
+    "Determine standard file extensions used in nnU-Net datasets for medical images (e.g., .nii.gz, .nii)",
+    "Confirm whether the modality field supports arbitrary strings like 'DRR' or requires predefined values"
+  ]
+}

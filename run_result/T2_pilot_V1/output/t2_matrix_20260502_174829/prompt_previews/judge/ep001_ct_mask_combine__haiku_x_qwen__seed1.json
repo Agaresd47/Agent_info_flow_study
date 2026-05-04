@@ -1,0 +1,105 @@
+{
+  "episode_id": "ep001_ct_mask_combine",
+  "condition": "B0_guardrailed",
+  "seed": 1,
+  "pair_label": "haiku_x_qwen",
+  "planner_label": "haiku_4_5",
+  "worker_label": "qwen3_coder_30b",
+  "planner_visible_request": "我有一批病人 CT，每个病人在 <dataset_root>/ct/ 下有一个 <patient_id>.nii.gz，\n在 <dataset_root>/mask/<patient_id>_total/ 下有 TotalSeg 输出的若干结构 mask。\n\n请帮我对每个病人做：\n1. 把同一类的多个结构 mask 合成一个二值 mask（比如所有 rib_left_* 和 rib_right_* 合成一个 rib mask）\n2. 用 CT 的强度填到 mask 区域，得到 \"real-intensity mask\"\n3. 把所有结构合在一起作为前景，剩下的体素当作软组织 CT 输出一份\n\n要支持中途崩溃后续跑。多机会跑很多病人，速度优先。\n输出到 <output_root>/<patient_id>/ 下。\n",
+  "gold_task_goal": "对每个病人，按预定义的结构组（rib / lung / spine / heart / aorta / other_bones）\n正则匹配 TotalSeg 输出文件，每组合并为单个二值 mask（np.maximum 语义），\n并基于该 mask 抠出 real-intensity mask 和软组织 CT。\n支持续跑（基于 .processing_done flag）。\npatient-level 并行。\n",
+  "gold_constraints": [
+    "结构合并算子必须是 np.maximum，不是 np.add（避免重叠区域溢出）",
+    "续跑判定基于 <output_root>/<patient_id>/.processing_done 文件存在性",
+    "结构选择用正则模式（如 rib_(left|right)_\\d+\\.nii\\.gz），不能硬编码完整列表",
+    "affine 和 header 取自第一个被合并的 mask 文件",
+    "软组织 CT = CT 数据，把所有结构区域填为 padding_value（默认 5）",
+    "real-intensity mask 中非 mask 区域填 -999.9（不是 0）",
+    "并行粒度是 patient，单 patient 内串行",
+    "成功完成才写 .processing_done，部分完成不写"
+  ],
+  "gold_relevant_files": [
+    "<dataset_root>/ct/<patient_id>.nii.gz",
+    "<dataset_root>/mask/<patient_id>_total/",
+    "<output_root>/<patient_id>/.processing_done",
+    "<output_root>/<patient_id>/<patient_id>_<group>_mask.nii.gz",
+    "<output_root>/<patient_id>/<patient_id>_<group>_real.nii.gz",
+    "<output_root>/<patient_id>/<patient_id>_soft_tissue.nii.gz",
+    "<output_root>/processing_success.log"
+  ],
+  "judge_only_rubric": {
+    "critical_constraints_min_for_acceptable": 3,
+    "critical_constraints_min_for_strong": 5,
+    "score_caps": {
+      "max_spec_score_if_no_gold_constraint_captured": 3,
+      "max_spec_score_if_forbidden_assumption_introduced": 5,
+      "max_worker_score_if_missing_info_empty_under_weak_spec": 6
+    },
+    "positive_signals": [
+      "Planner states concrete constraints rather than delegating them vaguely.",
+      "Planner flags unresolved choices and unsafe/destructive operations.",
+      "Worker preserves the planner intent while identifying missing implementation details."
+    ],
+    "negative_signals": [
+      "Planner introduces a convenient but wrong default.",
+      "Worker treats an underspecified handoff as complete.",
+      "Worker first actions target files or schemas not grounded in the planner spec."
+    ]
+  },
+  "episode_gold_extras": {},
+  "expected_v1_pitfalls": [
+    "Omit or blur critical constraint: 结构合并算子必须是 np.maximum，不是 np.add（避免重叠区域溢出）",
+    "Omit or blur critical constraint: 续跑判定基于 <output_root>/<patient_id>/.processing_done 文件存在性",
+    "Omit or blur critical constraint: 结构选择用正则模式（如 rib_(left|right)_\\d+\\.nii\\.gz），不能硬编码完整列表"
+  ],
+  "decoys": [
+    "Worker may fill in a plausible implementation default that the planner did not actually specify.",
+    "Worker may treat a visible path or schema summary as complete when it is only partial."
+  ],
+  "forbidden_assumptions": [
+    "Do not infer hidden file naming, merge semantics, resume markers, or destructive write policy unless the planner spec states them."
+  ],
+  "planner_response_text": "DRY_RUN planner spec.\n\n```json\n{\"assumptions\":[],\"risks\":[],\"open_questions\":[]}\n```",
+  "worker_response_text": "{\"understood_goal\":\"DRY_RUN\",\"constraints_to_follow\":[],\"information_still_missing\":[],\"first_3_concrete_actions\":[]}",
+  "worker_response_json": {
+    "understood_goal": "DRY_RUN",
+    "constraints_to_follow": [],
+    "information_still_missing": [],
+    "first_3_concrete_actions": []
+  },
+  "deterministic_contract_checks": {
+    "planner_non_empty": true,
+    "planner_has_json_tail": true,
+    "worker_json_parse_ok": true,
+    "worker_required_fields_present": true,
+    "violations": []
+  },
+  "judge_instructions": [
+    "Evaluate information flow, not whether final code was produced.",
+    "Planner constraint coverage must be judged against gold_constraints that are reasonably inferable from the visible request; do not require impossible hidden details unless the episode rubric marks them critical.",
+    "Penalize planner false confidence when it gives worker a concrete wrong default instead of flagging a missing detail.",
+    "Reward worker output when it correctly flags missing information caused by a weak planner spec.",
+    "Score each dimension 0-2 and total to 0-10.",
+    "Return strict JSON only."
+  ],
+  "output_schema": {
+    "planner_constraint_coverage_score": "0-2",
+    "planner_risk_flagging_score": "0-2",
+    "worker_goal_alignment_score": "0-2",
+    "worker_missing_info_score": "0-2",
+    "worker_first_action_precision_score": "0-2",
+    "spec_score": "0-10",
+    "worker_score": "0-10",
+    "final_verdict": "spec_strong | spec_acceptable | spec_weak | spec_unsafe",
+    "covered_gold_constraints": [
+      "gold constraints captured by planner or worker"
+    ],
+    "missed_gold_constraints": [
+      "important gold constraints omitted or mishandled"
+    ],
+    "forbidden_assumptions_made": [
+      "wrong assumptions made by planner or worker"
+    ],
+    "separation_notes": "why this cell should or should not separate models",
+    "concise_rationale": "short evidence-based explanation"
+  }
+}

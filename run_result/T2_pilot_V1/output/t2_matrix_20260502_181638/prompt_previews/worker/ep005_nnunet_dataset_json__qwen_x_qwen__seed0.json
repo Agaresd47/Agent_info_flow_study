@@ -1,0 +1,24 @@
+{
+  "condition": "B0_guardrailed",
+  "seed": 0,
+  "episode_id": "ep005_nnunet_dataset_json",
+  "planner_spec": "### Implementation Plan\n\n#### Observed Facts:\n- Dataset root: `<dataset_root>/Dataset001_LungLobeRight/`\n- Training image directory: `imagesTr/`\n- Training label directory: `labelsTr/`\n- Test image directory: `imagesTs/`\n- Modality: DRR (not CT)\n- Foreground class: `lung_lower_lobe_right`\n- Using nnU-Net v2\n\n#### Assumptions:\n- The dataset follows nnU-Net v2 directory structure.\n- All training images and labels have corresponding filenames (e.g., `case001_0000.nii.gz` and `case001.nii.gz`).\n- File extensions for images and labels are `.nii.gz`.\n- Test set files are named consistently with training set files.\n- The `dataset.json` will be generated in the same dataset folder (`Dataset001_LungLobeRight/`).\n\n#### Constraints:\n- Case IDs must align between images and labels based on filename prefixes (e.g., `case001`).\n- Only training cases should be included in the `training` field of `dataset.json`.\n- Test cases should be listed under the `test` field if they exist.\n- Schema fields must conform to nnU-Net v2 specification.\n\n#### Open Questions:\n1. **Schema Field Details**: What are the exact required and optional fields in the nnU-Net v2 `dataset.json` schema? Are there specific rules for `description`, `reference`, `licence`, `release`, etc.?\n2. **Path Handling**: Should relative paths be used or absolute paths? If relative, what is the base path context expected by nnU-Net?\n3. **File Extension Handling**: Is it guaranteed that all files in `imagesTr/` and `labelsTr/` have `.nii.gz` extension? What about test set files in `imagesTs/`?\n4. **Test Set Inclusion**: Is the presence of `imagesTs/` sufficient to include test cases in `dataset.json`? Should we check for matching label files in `labelsTs/`?\n5. **Case ID Alignment Rule**: How strictly must the case ID match between image and label files? For example, does `case001_0000.nii.gz` imply `case001.nii.gz`?\n\n---\n\n```json\n{\n  \"assumptions\": [\n    \"The dataset follows nnU-Net v2 directory structure.\",\n    \"Training images and labels have corresponding filenames with consistent prefixes.\",\n    \"All files use .nii.gz extension.\",\n    \"Test set files are named consistently with training set files.\",\n    \"The dataset.json will be placed in the dataset root directory.\"\n  ],\n  \"risks\": [\n    \"Mismatched case IDs between images and labels could lead to incorrect mapping.\",\n    \"Incorrect handling of file extensions may cause runtime errors.\",\n    \"Including test cases without verifying their existence in both image and label directories can result in incomplete metadata.\"\n  ],\n  \"open_questions\": [\n    \"What are the exact required and optional fields in the nnU-Net v2 dataset.json schema?\",\n    \"Should relative or absolute paths be used in the JSON, and what is the expected base path context?\",\n    \"Are all files in imagesTr/ and labelsTr/ guaranteed to have .nii.gz extension?\",\n    \"Is the presence of imagesTs/ sufficient to include test cases in dataset.json, and should we verify labelsTs/ too?\",\n    \"How strictly must the case ID match between image and label files?\"\n  ]\n}\n```",
+  "task": "Interpret the planner spec. Do not use outside knowledge except general engineering caution.",
+  "output_schema": {
+    "understood_goal": "string",
+    "constraints_to_follow": [
+      "specific constraints stated or strongly implied by the planner spec"
+    ],
+    "information_still_missing": [
+      "missing information that blocks safe implementation"
+    ],
+    "first_3_concrete_actions": [
+      "the first three actions you would take before writing final code"
+    ]
+  },
+  "instructions": [
+    "Return strict JSON only.",
+    "If the planner spec omits something important, put it in information_still_missing instead of inventing it.",
+    "Do not assume hidden dataset schema, file naming, algorithm details, or safety policy."
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "understood_goal": "Generate a nnU-Net v2 compliant dataset.json file for a lung lower-lobe-right segmentation task by scanning training and test image directories, aligning cases by ID, and producing valid metadata without modifying source files.",
+  "constraints_to_follow": [
+    "Scan three directories: imagesTr, labelsTr, imagesTs, and align training pairs by case ID.",
+    "Extract case IDs from filenames using the pattern 'case_NNN' for images and labels.",
+    "Only include training pairs where both image and label exist; warn about unpaired files.",
+    "Use '.nii.gz' as the file ending and ensure all files match this format.",
+    "Produce a valid JSON object conforming to nnU-Net v2 schema with required fields.",
+    "Write the output dataset.json to <dataset_root>/Dataset001_LungLobeRight/.",
+    "Do not modify or move source files.",
+    "Ensure the script exits with non-zero status on critical errors."
+  ],
+  "information_still_missing": [
+    "Exact nnU-Net v2 dataset.json schema definition including required top-level keys, structure of 'training' and 'test' arrays, and any version/metadata fields.",
+    "Whether paths in JSON should be relative to dataset root or absolute filesystem paths.",
+    "Whether the 'test' key should be included in dataset.json and its expected structure.",
+    "Correct naming and case convention for channel_names (e.g., 'DRR' vs. 'drr').",
+    "Whether the 'labels' object must explicitly include background (label 0) or only foreground classes.",
+    "Policy for handling existing dataset.json (overwrite silently, backup, error, or prompt).",
+    "Any additional required v2 fields such as 'description', 'reference', 'licence', 'release', 'tensorImageSize', or 'modality' and their expected values.",
+    "Validation requirements for label files (e.g., only values 0 and 1)."
+  ],
+  "first_3_concrete_actions": [
+    "Validate that the dataset root directory exists and contains the required subdirectories (imagesTr, labelsTr, imagesTs).",
+    "Scan and list all files in each directory to confirm structure and count, logging any irregularities.",
+    "Implement case ID extraction logic and align training image-label pairs, logging unpaired cases for review."
+  ]
+}

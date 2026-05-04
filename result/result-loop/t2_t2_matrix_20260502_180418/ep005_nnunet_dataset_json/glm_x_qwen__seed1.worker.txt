@@ -1,0 +1,27 @@
+{
+  "understood_goal": "Generate a `dataset.json` file for an nnU-Net v2 project that defines a dataset for segmenting the 'right lower lobe' of the lung using DRR (Digital Radiography) images. The JSON must follow the nnU-Net v2 schema and include metadata about the dataset, modalities, classes, training cases, and optionally test cases.",
+  "constraints_to_follow": [
+    "The dataset root directory is `<dataset_root>/Dataset001_LungLobeRight/`.",
+    "The JSON file must be written to the root of the dataset directory.",
+    "All paths in the JSON must be relative to the location of `dataset.json`.",
+    "The filenames in `imagesTr` and `labelsTr` must align by common prefix (Case ID).",
+    "File extensions must be stripped when constructing Case IDs and paths.",
+    "The number of training images must match the number of training labels.",
+    "The `tensorImageSize` field must be specified; if unknown, it should be marked as 'None' or left as an open question.",
+    "The `modality` key in `channel_names` must use a recognized string for DRR; if not known, it's an open question.",
+    "If `imagesTs` is present but empty, the `test` field should either be omitted or set to an empty list.",
+    "If `dataset.json` already exists, there is no defined overwrite policy, which introduces a risk."
+  ],
+  "information_still_missing": [
+    "The exact string value for the DRR modality in the `channel_names` dictionary.",
+    "The specific dimensions of the DRR images (required for `tensorImageSize`).",
+    "Whether the `test` field should be populated based on the contents of `imagesTs`.",
+    "The file extension used for DRR images and labels (e.g., .png, .dcm, .nii.gz).",
+    "The overwrite policy for an existing `dataset.json` file."
+  ],
+  "first_3_concrete_actions": [
+    "Verify the existence and structure of the dataset root directory and its subdirectories (`imagesTr`, `labelsTr`, `imagesTs`).",
+    "List all files in `imagesTr` and `labelsTr` to confirm alignment by Case ID and identify file extensions.",
+    "Check if `dataset.json` already exists in the root directory and note the lack of defined overwrite behavior."
+  ]
+}

@@ -1,0 +1,130 @@
+{
+  "episode_id": "ep001_ct_mask_combine",
+  "condition": "B0_guardrailed",
+  "seed": 0,
+  "pair_label": "haiku_x_qwen",
+  "planner_label": "haiku_4_5",
+  "worker_label": "qwen3_coder_30b",
+  "planner_visible_request": "我有一批病人 CT，每个病人在 <dataset_root>/ct/ 下有一个 <patient_id>.nii.gz，\n在 <dataset_root>/mask/<patient_id>_total/ 下有 TotalSeg 输出的若干结构 mask。\n\n请帮我对每个病人做：\n1. 把同一类的多个结构 mask 合成一个二值 mask（比如所有 rib_left_* 和 rib_right_* 合成一个 rib mask）\n2. 用 CT 的强度填到 mask 区域，得到 \"real-intensity mask\"\n3. 把所有结构合在一起作为前景，剩下的体素当作软组织 CT 输出一份\n\n要支持中途崩溃后续跑。多机会跑很多病人，速度优先。\n输出到 <output_root>/<patient_id>/ 下。\n",
+  "gold_task_goal": "对每个病人，按预定义的结构组（rib / lung / spine / heart / aorta / other_bones）\n正则匹配 TotalSeg 输出文件，每组合并为单个二值 mask（np.maximum 语义），\n并基于该 mask 抠出 real-intensity mask 和软组织 CT。\n支持续跑（基于 .processing_done flag）。\npatient-level 并行。\n",
+  "gold_constraints": [
+    "结构合并算子必须是 np.maximum，不是 np.add（避免重叠区域溢出）",
+    "续跑判定基于 <output_root>/<patient_id>/.processing_done 文件存在性",
+    "结构选择用正则模式（如 rib_(left|right)_\\d+\\.nii\\.gz），不能硬编码完整列表",
+    "affine 和 header 取自第一个被合并的 mask 文件",
+    "软组织 CT = CT 数据，把所有结构区域填为 padding_value（默认 5）",
+    "real-intensity mask 中非 mask 区域填 -999.9（不是 0）",
+    "并行粒度是 patient，单 patient 内串行",
+    "成功完成才写 .processing_done，部分完成不写"
+  ],
+  "gold_relevant_files": [
+    "<dataset_root>/ct/<patient_id>.nii.gz",
+    "<dataset_root>/mask/<patient_id>_total/",
+    "<output_root>/<patient_id>/.processing_done",
+    "<output_root>/<patient_id>/<patient_id>_<group>_mask.nii.gz",
+    "<output_root>/<patient_id>/<patient_id>_<group>_real.nii.gz",
+    "<output_root>/<patient_id>/<patient_id>_soft_tissue.nii.gz",
+    "<output_root>/processing_success.log"
+  ],
+  "judge_only_rubric": {
+    "critical_constraints_min_for_acceptable": 3,
+    "critical_constraints_min_for_strong": 5,
+    "score_caps": {
+      "max_spec_score_if_no_gold_constraint_captured": 3,
+      "max_spec_score_if_forbidden_assumption_introduced": 5,
+      "max_worker_score_if_missing_info_empty_under_weak_spec": 6
+    },
+    "positive_signals": [
+      "Planner states concrete constraints rather than delegating them vaguely.",
+      "Planner flags unresolved choices and unsafe/destructive operations.",
+      "Worker preserves the planner intent while identifying missing implementation details."
+    ],
+    "negative_signals": [
+      "Planner introduces a convenient but wrong default.",
+      "Worker treats an underspecified handoff as complete.",
+      "Worker first actions target files or schemas not grounded in the planner spec."
+    ]
+  },
+  "episode_gold_extras": {},
+  "expected_v1_pitfalls": [
+    "Omit or blur critical constraint: 结构合并算子必须是 np.maximum，不是 np.add（避免重叠区域溢出）",
+    "Omit or blur critical constraint: 续跑判定基于 <output_root>/<patient_id>/.processing_done 文件存在性",
+    "Omit or blur critical constraint: 结构选择用正则模式（如 rib_(left|right)_\\d+\\.nii\\.gz），不能硬编码完整列表"
+  ],
+  "decoys": [
+    "Worker may fill in a plausible implementation default that the planner did not actually specify.",
+    "Worker may treat a visible path or schema summary as complete when it is only partial."
+  ],
+  "forbidden_assumptions": [
+    "Do not infer hidden file naming, merge semantics, resume markers, or destructive write policy unless the planner spec states them."
+  ],
+  "planner_response_text": "# Implementation Spec: CT Mask Combine & Intensity Fill Pipeline\n\n## Overview\nBuild a multi-patient data preprocessing pipeline that:\n1. Groups TotalSeg masks by anatomical structure class\n2. Generates intensity-filled masks from CT volumes\n3. Produces composite foreground masks and soft-tissue fallback outputs\n4. Supports resumption after failure\n5. Optimizes for throughput across multiple machines\n\n---\n\n## Observed Facts\n\n- **Input structure:**\n  - CT volumes: `<dataset_root>/ct/<patient_id>.nii.gz`\n  - Masks: `<dataset_root>/mask/<patient_id>_total/` (multiple files, TotalSeg output)\n  \n- **Output location:** `<output_root>/<patient_id>/`\n\n- **Processing requirements:**\n  - Merge masks by anatomical class (e.g., `rib_left_*` + `rib_right_*` → single `rib` mask)\n  - Fill merged masks with CT intensity values (\"real-intensity mask\")\n  - Combine all structures as foreground; remaining voxels treated as soft tissue\n  - Must support crash recovery and multi-machine parallelization\n\n---\n\n## Assumptions\n\n1. **File format:** All CT and mask files are NIfTI (.nii.gz) with matching spatial geometry\n2. **Mask naming:** TotalSeg output follows a consistent naming convention (e.g., `<patient_id>_total/<structure_name>.nii.gz`)\n3. **Grouping logic:** Structure class grouping is deterministic and can be derived from structure name prefixes (e.g., `rib_left_*`, `rib_right_*`)\n4. **Intensity semantics:** \"Fill with CT intensity\" means copy voxel values from CT where mask is nonzero\n5. **Soft tissue default:** Voxels outside all masks should receive a fixed soft-tissue HU value (not specified)\n6. **Output format:** Output files are NIfTI (.nii.gz) with same geometry as input CT\n7. **Patient ID extraction:** Patient IDs are consistently formatted and extractable from directory/file names\n\n---\n\n## Constraints\n\n- **Write safety:** No specification for overwrite behavior (append, skip, replace, error on collision)\n- **Resumption marker:** No explicit completion flag or checkpoint format defined\n- **Parallelization:** No locking mechanism specified for multi-machine writes to shared `<output_root>`\n- **Memory:** No guidance on handling large 3D volumes or batch processing strategy\n- **Mask merging:** No specification for handling overlapping masks (union, max, first-wins)\n- **Soft tissue value:** HU value for background voxels not provided\n\n---\n\n## Missing Information (Open Questions)\n\n1. **Mask grouping rules:**\n   - What is the exact mapping from individual mask names to structure classes?\n   - Is this a fixed hardcoded list, a config file, or derived from name patterns?\n   - How are ambiguous or unmapped masks handled?\n\n2. **Intensity fill semantics:**\n   - Should intensity be copied directly, or normalized/clipped to a range?\n   - What happens at mask boundaries (interpolation, nearest-neighbor)?\n\n3. **Soft tissue fallback:**\n   - What HU value should be assigned to background voxels?\n   - Should this be a global constant or per-patient?\n\n4. **Resumption & checkpointing:**\n   - What marks a patient as \"complete\"? (e.g., presence of final output file, metadata file, timestamp)\n   - If a patient is partially processed, which intermediate outputs should be preserved vs. re-run?\n   - Should incomplete outputs be deleted before retry?\n\n5. **Multi-machine safety:**\n   - Is `<output_root>` on shared storage (NFS, S3) or local?\n   - How should concurrent writes be handled (file locking, atomic rename, per-machine subdirs)?\n   - Should patient assignments be pre-distributed or dynamically claimed?\n\n6. **Output file naming & structure:**\n   - What are the exact output filenames for: merged masks, intensity masks, foreground mask, soft-tissue output?\n   - Should all outputs go in `<output_root>/<patient_id>/` or in separate subdirectories?\n\n7. **Error handling:**\n   - What should happen if CT and mask geometries don't match?\n   - What if a patient has no masks or no CT?\n   - Should errors be logged and skipped, or halt the pipeline?\n\n8. **Patient enumeration:**\n   - How is the list of patient IDs determined? (scan directories, config file, database query)\n   - Are there any filtering criteria (e.g., only certain patient ID patterns)?\n\n---\n\n## Recommended First Actions\n\n1. **Clarify mask grouping:** Obtain or define the structure class mapping (e.g., JSON config with patterns or explicit lists)\n2. **Define completion marker:** Choose a simple, atomic indicator (e.g., presence of `<output_root>/<patient_id>/.done` file)\n3. **Specify soft-tissue HU:** Confirm the background intensity value\n4. **Confirm output schema:** List exact filenames and directory layout for all outputs\n5. **Resolve write safety:** Decide on overwrite policy and multi-machine coordination strategy\n\n---\n\n```json\n{\n  \"assumptions\": [\n    \"All CT and mask files are NIfTI (.nii.gz) with matching spatial geometry\",\n    \"TotalSeg output follows a consistent naming convention in <patient_id>_total/ directories\",\n    \"Structure class grouping is deterministic from name prefixes (e.g., rib_left_*, rib_right_*)\",\n    \"Intensity fill means copying CT voxel values where mask is nonzero\",\n    \"Soft tissue voxels are those outside all merged masks\",\n    \"Output files are NIfTI (.nii.gz) with same geometry as input CT\",\n    \"Patient IDs are consistently formatted and extractable from directory names\"\n  ],\n  \"risks\": [\n    \"No overwrite policy specified; concurrent writes to same patient output could corrupt data\",\n    \"No completion marker defined; unclear how to detect partial failures and resume safely\",\n    \"Mask merging strategy undefined (union vs. max vs. first-wins); overlapping masks may produce incorrect results\",\n    \"Background HU value not specified; soft-tissue output may be invalid\",\n    \"No locking mechanism for multi-machine access to shared output directory\",\n    \"Geometry mismatch between CT and masks not handled; could cause silent data corruption\",\n    \"Memory constraints not specified; large volumes could cause OOM on worker machines\"\n  ],\n  \"open_questions\": [\n    \"What is the exact mapping from individual TotalSeg mask names to structure classes?\",\n    \"Is mask grouping hardcoded, config-driven, or pattern-based?\",\n    \"What HU value should be assigned to background (soft-tissue) voxels?\",\n    \"What marks a patient as successfully processed (file presence, metadata, timestamp)?\",\n    \"If a patient is partially processed, which outputs should be preserved vs. re-run?\",\n    \"Is <output_root> on shared storage or local per-machine?\",\n    \"How should concurrent writes from multiple machines be coordinated?\",\n    \"What are the exact output filenames for merged masks, intensity masks, foreground, and soft-tissue outputs?\",\n    \"Should all outputs go in <output_root>/<patient_id>/ or in separate subdirectories?\",\n    \"How is the patient list enumerated (directory scan, config, database)?\",\n    \"What should happen if CT and mask geometries don't match?\",\n    \"What should happen if a patient has no masks or no CT file?\"\n  ]\n}\n```",
+  "worker_response_text": "{\n  \"understood_goal\": \"To build a multi-patient data preprocessing pipeline that groups TotalSeg masks by anatomical structure class, generates intensity-filled masks from CT volumes, produces composite foreground masks and soft-tissue fallback outputs, and supports resumption after failure while optimizing for throughput across multiple machines.\",\n  \"constraints_to_follow\": [\n    \"All CT and mask files are NIfTI (.nii.gz) with matching spatial geometry\",\n    \"TotalSeg output follows a consistent naming convention in <patient_id>_total/ directories\",\n    \"Structure class grouping is deterministic from name prefixes (e.g., rib_left_*, rib_right_*)\",\n    \"Intensity fill means copying CT voxel values where mask is nonzero\",\n    \"Soft tissue voxels are those outside all merged masks\",\n    \"Output files are NIfTI (.nii.gz) with same geometry as input CT\",\n    \"Patient IDs are consistently formatted and extractable from directory names\"\n  ],\n  \"information_still_missing\": [\n    \"The exact mapping from individual TotalSeg mask names to structure classes\",\n    \"Whether mask grouping is hardcoded, config-driven, or pattern-based\",\n    \"What HU value should be assigned to background (soft-tissue) voxels\",\n    \"What marks a patient as successfully processed (file presence, metadata, timestamp)\",\n    \"If a patient is partially processed, which outputs should be preserved vs. re-run\",\n    \"Is <output_root> on shared storage or local per-machine\",\n    \"How should concurrent writes from multiple machines be coordinated\",\n    \"What are the exact output filenames for merged masks, intensity masks, foreground, and soft-tissue outputs\",\n    \"Should all outputs go in <output_root>/<patient_id>/ or in separate subdirectories\",\n    \"How is the patient list enumerated (directory scan, config, database)\",\n    \"What should happen if CT and mask geometries don't match\",\n    \"What should happen if a patient has no masks or no CT file\"\n  ],\n  \"first_3_concrete_actions\": [\n    \"Clarify the structure class mapping for TotalSeg mask names (e.g., via a configuration file or hardcoded list)\",\n    \"Define a completion marker for resumption (e.g., create a .done file upon successful completion)\",\n    \"Specify the HU value to assign to background voxels in the soft-tissue fallback output\"\n  ]\n}",
+  "worker_response_json": {
+    "understood_goal": "To build a multi-patient data preprocessing pipeline that groups TotalSeg masks by anatomical structure class, generates intensity-filled masks from CT volumes, produces composite foreground masks and soft-tissue fallback outputs, and supports resumption after failure while optimizing for throughput across multiple machines.",
+    "constraints_to_follow": [
+      "All CT and mask files are NIfTI (.nii.gz) with matching spatial geometry",
+      "TotalSeg output follows a consistent naming convention in <patient_id>_total/ directories",
+      "Structure class grouping is deterministic from name prefixes (e.g., rib_left_*, rib_right_*)",
+      "Intensity fill means copying CT voxel values where mask is nonzero",
+      "Soft tissue voxels are those outside all merged masks",
+      "Output files are NIfTI (.nii.gz) with same geometry as input CT",
+      "Patient IDs are consistently formatted and extractable from directory names"
+    ],
+    "information_still_missing": [
+      "The exact mapping from individual TotalSeg mask names to structure classes",
+      "Whether mask grouping is hardcoded, config-driven, or pattern-based",
+      "What HU value should be assigned to background (soft-tissue) voxels",
+      "What marks a patient as successfully processed (file presence, metadata, timestamp)",
+      "If a patient is partially processed, which outputs should be preserved vs. re-run",
+      "Is <output_root> on shared storage or local per-machine",
+      "How should concurrent writes from multiple machines be coordinated",
+      "What are the exact output filenames for merged masks, intensity masks, foreground, and soft-tissue outputs",
+      "Should all outputs go in <output_root>/<patient_id>/ or in separate subdirectories",
+      "How is the patient list enumerated (directory scan, config, database)",
+      "What should happen if CT and mask geometries don't match",
+      "What should happen if a patient has no masks or no CT file"
+    ],
+    "first_3_concrete_actions": [
+      "Clarify the structure class mapping for TotalSeg mask names (e.g., via a configuration file or hardcoded list)",
+      "Define a completion marker for resumption (e.g., create a .done file upon successful completion)",
+      "Specify the HU value to assign to background voxels in the soft-tissue fallback output"
+    ]
+  },
+  "deterministic_contract_checks": {
+    "planner_non_empty": true,
+    "planner_has_json_tail": true,
+    "worker_json_parse_ok": true,
+    "worker_required_fields_present": true,
+    "violations": []
+  },
+  "judge_instructions": [
+    "Evaluate information flow, not whether final code was produced.",
+    "Planner constraint coverage must be judged against gold_constraints that are reasonably inferable from the visible request; do not require impossible hidden details unless the episode rubric marks them critical.",
+    "Penalize planner false confidence when it gives worker a concrete wrong default instead of flagging a missing detail.",
+    "Reward worker output when it correctly flags missing information caused by a weak planner spec.",
+    "Score each dimension 0-2 and total to 0-10.",
+    "Return strict JSON only."
+  ],
+  "output_schema": {
+    "planner_constraint_coverage_score": "0-2",
+    "planner_risk_flagging_score": "0-2",
+    "worker_goal_alignment_score": "0-2",
+    "worker_missing_info_score": "0-2",
+    "worker_first_action_precision_score": "0-2",
+    "spec_score": "0-10",
+    "worker_score": "0-10",
+    "final_verdict": "spec_strong | spec_acceptable | spec_weak | spec_unsafe",
+    "covered_gold_constraints": [
+      "gold constraints captured by planner or worker"
+    ],
+    "missed_gold_constraints": [
+      "important gold constraints omitted or mishandled"
+    ],
+    "forbidden_assumptions_made": [
+      "wrong assumptions made by planner or worker"
+    ],
+    "separation_notes": "why this cell should or should not separate models",
+    "concise_rationale": "short evidence-based explanation"
+  }
+}

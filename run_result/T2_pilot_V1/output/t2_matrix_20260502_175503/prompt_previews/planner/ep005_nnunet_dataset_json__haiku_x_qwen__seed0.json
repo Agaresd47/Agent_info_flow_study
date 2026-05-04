@@ -1,0 +1,38 @@
+{
+  "condition": "B0_guardrailed",
+  "seed": 0,
+  "episode_id": "ep005_nnunet_dataset_json",
+  "project_id": "pp_pipeline",
+  "context_type": "config_generation_script",
+  "request_text": "我准备用 nnU-Net 训一个肺右下叶分割。\n数据已经按 nnU-Net v2 的目录结构放好了：\n\n<dataset_root>/Dataset001_LungLobeRight/\n  imagesTr/\n  labelsTr/\n  imagesTs/\n\n请写个脚本生成 dataset.json。\n单类前景：lung_lower_lobe_right。\n模态是 DRR（不是 CT）。\n",
+  "output_contract": {
+    "format": "markdown spec followed by exactly one final fenced json block",
+    "json_block_schema": {
+      "assumptions": [
+        "assumptions you made from visible information only"
+      ],
+      "risks": [
+        "risks or constraints the worker must not miss"
+      ],
+      "open_questions": [
+        "information still missing before implementation"
+      ]
+    }
+  },
+  "instructions": [
+    "Write the spec a worker would need to implement this safely and correctly.",
+    "Separate observed facts, assumptions, constraints, and missing information.",
+    "Do not invent file paths, schema fields, algorithms, or completion markers.",
+    "Do not mention evaluation, hidden constraints, rubrics, or gold answers.",
+    "If an exact operator, schema rule, path convention, resume marker, destructive-write policy, or overwrite policy is not specified, list it as missing instead of choosing a plausible default.",
+    "End with exactly one fenced ```json block containing assumptions, risks, and open_questions."
+  ],
+  "seed_instruction": "Prefer a concise but complete handoff.",
+  "guardrails": [
+    "Surface constraints explicitly instead of burying them in prose.",
+    "List assumptions and askable gaps rather than papering over them.",
+    "Flag choices that would create irreversible or unsafe worker actions.",
+    "Give the worker precise first actions, but do not write implementation code.",
+    "For data-pipeline tasks, explicitly account for naming conventions, exact file selectors, completion markers, merge/math semantics, schema-version details, and write safety. If any are absent from the request, mark them as open questions."
+  ]
+}

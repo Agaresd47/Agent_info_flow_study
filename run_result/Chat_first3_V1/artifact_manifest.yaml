@@ -1,0 +1,33 @@
+bundle_id: Chat_first3_V1
+
+tasks:
+  - task_id: t1_cxr14_subset_extraction
+    task_yaml: data/t1_tasks/cxr14_subset_extraction.yaml
+    judge_yaml: data/t1_tasks/judges/cxr14_subset_extraction.judge.yaml
+    fixture_yaml: fixtures/t1_workspaces/t1_pilot_cxr14_subset_extraction.yaml
+  - task_id: t1_heart_mask_merge_cleanup
+    task_yaml: data/t1_tasks/heart_mask_merge_cleanup.yaml
+    judge_yaml: data/t1_tasks/judges/heart_mask_merge_cleanup.judge.yaml
+    fixture_yaml: fixtures/t1_workspaces/t1_pilot_heart_mask_merge_cleanup.yaml
+  - task_id: t1_totalseg_mask_quarantine
+    task_yaml: data/t1_tasks/totalseg_mask_quarantine.yaml
+    judge_yaml: data/t1_tasks/judges/totalseg_mask_quarantine.judge.yaml
+    fixture_yaml: fixtures/t1_workspaces/t1_pilot_totalseg_mask_quarantine.yaml
+
+configs:
+  matrix_config: configs/task1/chat_first3_matrix.yaml
+  asset_manifest: configs/task1/chat_first3_assets.yaml
+  legacy_handoff_config: run_result/Chat_first3_V1/input/chat_first3_v1_config.yaml
+
+outputs:
+  canonical_output_root: run_result/Chat_first3_V1/output
+  canonical_completed_output_dir: run_result/Chat_first3_V1/output/t1_matrix_20260502_113147
+  latest_dry_run_output_dir: run_result/Chat_first3_V1/output/t1_matrix_20260502_113537
+  observed_output_dirs:
+    - run_result/Chat_first3_V1/output/t1_matrix_20260502_113147
+    - run_result/Chat_first3_V1/output/t1_matrix_20260502_113537
+
+notes:
+  - "Use the canonical completed output dir for the real judged run."
+  - "The later timestamped folder is a dry-run validation bundle."
+  - "The repo-level matrix config is aligned to run_result/Chat_first3_V1/output."

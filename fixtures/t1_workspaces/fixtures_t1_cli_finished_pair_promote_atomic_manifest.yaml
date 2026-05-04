@@ -1,0 +1,75 @@
+fixture_id: fixtures_t1_cli_finished_pair_promote_atomic_manifest
+workspace_root: /workspace/finished_stage
+
+tree:
+  /workspace/finished_stage:
+    dirs:
+      - raw_ct
+      - raw_mask
+      - final_ct
+      - final_mask
+    files: {}
+
+  /workspace/finished_stage/raw_ct:
+    dirs: []
+    files:
+      caseA.nii.gz: "NIFTI_PLACEHOLDER_caseA_CT"
+      caseB.nii.gz: "NIFTI_PLACEHOLDER_caseB_CT"
+      caseC.nii.gz: "NIFTI_PLACEHOLDER_caseC_CT"
+      caseE.nii.gz: "NIFTI_PLACEHOLDER_caseE_CT"
+      caseF.nii.gz: "NIFTI_PLACEHOLDER_caseF_CT"
+
+  /workspace/finished_stage/raw_mask:
+    dirs:
+      - caseA_total
+      - caseD_total
+      - caseE_total
+      - caseF_total
+    files: {}
+
+  /workspace/finished_stage/raw_mask/caseA_total:
+    dirs: []
+    files:
+      lung.nii.gz: "NIFTI_PLACEHOLDER_caseA_lung"
+      heart.nii.gz: "NIFTI_PLACEHOLDER_caseA_heart"
+
+  /workspace/finished_stage/raw_mask/caseD_total:
+    dirs: []
+    files:
+      heart.nii.gz: "NIFTI_PLACEHOLDER_caseD_heart"
+
+  /workspace/finished_stage/raw_mask/caseE_total:
+    dirs: []
+    files:
+      lung.nii.gz: "NIFTI_PLACEHOLDER_caseE_lung"
+
+  /workspace/finished_stage/raw_mask/caseF_total:
+    dirs: []
+    files:
+      lung.nii.gz: "NIFTI_PLACEHOLDER_caseF_lung"
+
+  /workspace/finished_stage/final_ct:
+    dirs: []
+    files:
+      caseE.nii.gz: "EXISTING_FINAL_CT_CONFLICT_caseE"
+
+  /workspace/finished_stage/final_mask:
+    dirs:
+      - caseF_total
+    files: {}
+
+  /workspace/finished_stage/final_mask/caseF_total:
+    dirs: []
+    files:
+      old.nii.gz: "EXISTING_FINAL_MASK_CONFLICT_caseF"
+
+oracle_notes:
+  complete_non_conflicting_pairs:
+    - caseA
+  partial_pairs:
+    caseB: missing_mask_folder
+    caseC: missing_mask_folder
+    caseD: missing_ct_file
+  conflict_pairs:
+    caseE: final_ct_exists
+    caseF: final_mask_exists

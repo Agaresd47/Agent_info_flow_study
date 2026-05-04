@@ -1,0 +1,135 @@
+{
+  "episode_id": "ep005_nnunet_dataset_json",
+  "condition": "B0_guardrailed",
+  "seed": 0,
+  "pair_label": "kimi_x_qwen",
+  "planner_label": "kimi_k2_5",
+  "worker_label": "qwen3_coder_30b",
+  "planner_visible_request": "我准备用 nnU-Net 训一个肺右下叶分割。\n数据已经按 nnU-Net v2 的目录结构放好了：\n\n<dataset_root>/Dataset001_LungLobeRight/\n  imagesTr/\n  labelsTr/\n  imagesTs/\n\n请写个脚本生成 dataset.json。\n单类前景：lung_lower_lobe_right。\n模态是 DRR（不是 CT）。\n\n这份 spec 里需要明确 nnU-Net v2 dataset.json 的 schema 字段、训练图像和标签的 case_id 对齐规则、测试集是否进入 JSON、路径应该怎么写、文件后缀应该怎么处理；如果你不确定某个 v2 细节，不要沿用旧版默认，直接列成 open question。\n",
+  "gold_task_goal": "生成符合 nnU-Net v2 规范的 dataset.json，包含：\nchannel_name / labels / numTraining / numTest / file_ending / training pairs / test 列表。\n",
+  "gold_constraints": [
+    "nnU-Net v2 schema：channel_name 是 dict (str key)，不是 modality 数组",
+    "labels 字典 key 必须是 str（'0', '1'），不是 int",
+    "训练图像文件名形如 <case_id>_0000.nii.gz，case_id 是去掉 _0000.nii.gz 之后的部分",
+    "labelsTr 中的文件名是 <case_id>.nii.gz（无 _0000 后缀）",
+    "training 数组里的路径是相对路径，前缀 './imagesTr/' 和 './labelsTr/'",
+    "test 数组里的路径前缀 './imagesTs/'",
+    "imagesTs 不需要对应 label",
+    "file_ending 字段必须存在（.nii.gz）",
+    "tensorImageSize 在 v2 中已弃用——不要包含"
+  ],
+  "gold_relevant_files": [
+    "<dataset_root>/Dataset001_LungLobeRight/imagesTr/",
+    "<dataset_root>/Dataset001_LungLobeRight/labelsTr/",
+    "<dataset_root>/Dataset001_LungLobeRight/imagesTs/",
+    "<dataset_root>/Dataset001_LungLobeRight/dataset.json"
+  ],
+  "judge_only_rubric": {
+    "critical_constraints_min_for_acceptable": 3,
+    "critical_constraints_min_for_strong": 5,
+    "score_caps": {
+      "max_spec_score_if_no_gold_constraint_captured": 3,
+      "max_spec_score_if_forbidden_assumption_introduced": 5,
+      "max_worker_score_if_missing_info_empty_under_weak_spec": 6
+    },
+    "positive_signals": [
+      "Planner states concrete constraints rather than delegating them vaguely.",
+      "Planner flags unresolved choices and unsafe/destructive operations.",
+      "Worker preserves the planner intent while identifying missing implementation details."
+    ],
+    "negative_signals": [
+      "Planner introduces a convenient but wrong default.",
+      "Worker treats an underspecified handoff as complete.",
+      "Worker first actions target files or schemas not grounded in the planner spec."
+    ]
+  },
+  "episode_gold_extras": {
+    "gold_dataset_json_skeleton": "{\n  \"name\": \"Dataset001_LungLobeRight\",\n  \"description\": \"...\",\n  \"reference\": \"N/A\",\n  \"licence\": \"N/A\",\n  \"release\": \"1.0\",\n  \"channel_name\": {\"0\": \"DRR\"},\n  \"labels\": {\"background\": 0, \"lung_lower_lobe_right\": 1},\n  \"file_ending\": \".nii.gz\",\n  \"numTraining\": <int>,\n  \"numTest\": <int>,\n  \"training\": [\n    {\"image\": \"./imagesTr/case_001_0000.nii.gz\", \"label\": \"./labelsTr/case_001.nii.gz\"}\n  ],\n  \"test\": [\"./imagesTs/case_101_0000.nii.gz\"]\n}\n# 注意：v2 中 labels 是 {name: index}，而不是 {index: name}\n# 这是 nnU-Net v1 → v2 最容易踩的坑\n"
+  },
+  "expected_v1_pitfalls": [
+    "Omit or blur critical constraint: nnU-Net v2 schema：channel_name 是 dict (str key)，不是 modality 数组",
+    "Omit or blur critical constraint: labels 字典 key 必须是 str（'0', '1'），不是 int",
+    "Omit or blur critical constraint: 训练图像文件名形如 <case_id>_0000.nii.gz，case_id 是去掉 _0000.nii.gz 之后的部分"
+  ],
+  "decoys": [
+    "Worker may fill in a plausible implementation default that the planner did not actually specify.",
+    "Worker may treat a visible path or schema summary as complete when it is only partial."
+  ],
+  "forbidden_assumptions": [
+    "Do not infer hidden file naming, merge semantics, resume markers, or destructive write policy unless the planner spec states them."
+  ],
+  "planner_response_text": "## Implementation Spec: nnU-Net v2 dataset.json Generator for Lung Lower Lobe Right Segmentation\n\n### Observed Facts\n- **Task**: Single-class semantic segmentation (lung_lower_lobe_right)\n- **nnU-Net version**: v2 (explicitly stated)\n- **Dataset directory**: `<dataset_root>/Dataset001_LungLobeRight/`\n- **Subdirectories present**: `imagesTr/`, `labelsTr/`, `imagesTs/`\n- **Modality**: DRR (Digital Radiograph/Reconstructed Radiograph — explicitly **not CT**)\n- **Output required**: `dataset.json` file\n\n---\n\n### Required Schema Fields (nnU-Net v2)\n\nThe worker must populate these mandatory fields per nnU-Net v2 specification:\n\n| Field | Type | Description | Status |\n|-------|------|-------------|--------|\n| `name` | string | Dataset name | Derive from directory: `Dataset001_LungLobeRight` or `LungLobeRight`? |\n| `description` | string | Human-readable description | Required, content unspecified |\n| `reference` | string | Data source reference | Required, content unspecified |\n| `licence` | string | License string | Required, content unspecified |\n| `release` | string | Version/release date | Required, format unspecified |\n| `tensorImageSize` | string | Spatial dimensions | `\"2D\"` or `\"3D\"`? **OPEN** — DRR is typically 2D projection |\n| `modality` | object | `{case_id: modality_str}` | Must map all training cases to `\"DRR\"` |\n| `labels` | object | `{label_id: label_name}` | Must include `\"0\": \"background\"`, `\"1\": \"lung_lower_lobe_right\"` |\n| `numTraining` | int | Count of training cases | Derive from `imagesTr/` |\n| `numTest` | int | Count of test cases | Derive from `imagesTs/` |\n| `training` | list | List of `{\"image\": \"...\", \"label\": \"...\"}` | Paths relative to dataset root |\n| `test` | list | List of `{\"image\": \"...\"}` | Paths relative to dataset root; **inclusion policy unclear** |\n\n---\n\n### Case ID Alignment Rules\n\n**Training set alignment** (`imagesTr/` ↔ `labelsTr/`):\n- Case ID is the filename **without modality suffix and without extension**\n- nnU-Net v2 naming convention: `CASEID_0000.nii.gz` for images, `CASEID.nii.gz` for labels\n- The `0000` suffix indicates modality channel 0 (single-modality DRR)\n- **Alignment rule**: For each `CASEID_0000.nii.gz` in `imagesTr/`, expect `CASEID.nii.gz` in `labelsTr/`\n- **Mismatch handling**: Unmatched cases → error, warning, or skip? **OPEN**\n\n**Test set handling**:\n- `imagesTs/` exists but no `labelsTs/` mentioned\n- **Question**: Include test images in `dataset.json[\"test\"]` array or omit entirely? **OPEN**\n- nnU-Net v2 typically includes test images for inference; labels are omitted\n\n---\n\n### Path Conventions in JSON\n\n| Element | Convention | Example |\n|---------|-----------|---------|\n| Image paths | `./imagesTr/CASEID_0000.nii.gz` | Relative to dataset root |\n| Label paths | `./labelsTr/CASEID.nii.gz` | Relative to dataset root |\n| Test image paths | `./imagesTs/CASEID_0000.nii.gz` | If included |\n\n**Critical**: Paths must use forward slashes, include leading `./`, and preserve the `0000` channel suffix for images.\n\n---\n\n### File Extension Handling\n\n- **Assumed extension**: `.nii.gz` (standard nnU-Net)\n- **Verification required**: Confirm all files in `imagesTr/`, `labelsTr/`, `imagesTs/` share this extension\n- **Action if mixed extensions**: Fail, or filter to `.nii.gz` only? **OPEN**\n\n---\n\n### DRR Modality Specifics\n\n- DRR is **not** a standard nnU-Net modality code (unlike `\"CT\"`, `\"MRI\"`)\n- nnU-Net v2 uses modality as string identifier; `\"DRR\"` is acceptable as custom string\n- **Implication**: No intensity normalization preset exists for DRR; nnU-Net will use default z-score normalization\n- **Tensor image size**: DRRs are 2D images. If dataset contains 2D DRRs, `tensorImageSize` should be `\"2D\"` — but confirm actual dimensionality. **OPEN**\n\n---\n\n### Write Safety & Idempotency\n\n| Concern | Status | Required Action |\n|---------|--------|---------------|\n| Output path | `Dataset001_LungLobeRight/dataset.json` | Fixed relative to dataset root |\n| Overwrite existing | **Unspecified** | **OPEN** — fail if exists, or clobber? |\n| Partial write | Risk | Write to temp file, atomic rename |\n| Validation | Required | Verify JSON is parseable and schema-compliant |\n\n---\n\n### First Actions for Worker\n\n1. **Enumerate** `imagesTr/` → extract case IDs (strip `_0000.nii.gz`)\n2. **Verify** each case ID exists in `labelsTr/` with `.nii.gz` extension\n3. **Enumerate** `imagesTs/` → decide inclusion policy per open question\n4. **Determine** `tensorImageSize` by loading one image and checking dimensions\n5. **Collect** metadata strings (`description`, `reference`, `licence`, `release`) — these are **missing** and must be requested or defaulted with warning\n6. **Write** JSON with atomic file operation\n7. **Validate** output against nnU-Net v2 expected schema (no missing required fields)\n\n---\n\n```json\n{\n  \"assumptions\": [\n    \"File extension is .nii.gz for all images and labels\",\n    \"Single-modality DRR uses channel suffix _0000 in image filenames\",\n    \"Case ID alignment follows nnU-Net v2 convention: imagesTr/CASEID_0000.nii.gz pairs with labelsTr/CASEID.nii.gz\",\n    \"DRR as modality string is accepted by nnU-Net v2 without preset normalization\",\n    \"Dataset root path will be provided as argument or inferred from script location\",\n    \"tensorImageSize is '2D' for DRR projections (to be verified by image inspection)\"\n  ],\n  \"risks\": [\n    \"Mismatch between imagesTr and labelsTr case IDs causes incomplete or invalid dataset.json\",\n    \"Missing required metadata fields (description, reference, licence, release) will produce invalid nnU-Net dataset\",\n    \"Overwrite of existing dataset.json may destroy manual edits or prior configuration\",\n    \"Incorrect tensorImageSize (2D vs 3D) will cause nnU-Net preprocessing failures\",\n    \"Test set inclusion/exclusion policy affects downstream inference pipeline behavior\",\n    \"Non-.nii.gz files in directories will break filename parsing assumptions\"\n  ],\n  \"open_questions\": [\n    \"What is the overwrite policy if dataset.json already exists?\",\n    \"Should test images from imagesTs/ be included in the 'test' array or omitted entirely?\",\n    \"What are the exact values for description, reference, licence, and release metadata fields?\",\n    \"Is the dataset strictly 2D DRRs, or are there 3D volumes (affecting tensorImageSize)?\",\n    \"How should mismatched cases (image without label, or label without image) be handled: error, warning, or silent skip?\",\n    \"Are there any non-.nii.gz files in the directories that should be ignored?\",\n    \"Is the dataset root path provided as absolute path, relative path, or must be discovered?\",\n    \"Should the script validate the generated JSON against nnU-Net v2's internal validator before completing?\"\n  ]\n}\n```",
+  "worker_response_text": "{\n  \"understood_goal\": \"Generate a valid nnU-Net v2 dataset.json file for a lung lower lobe right segmentation task using DRR images, ensuring compliance with nnU-Net v2 schema requirements including proper case ID alignment, modality specification, and file path conventions.\",\n  \"constraints_to_follow\": [\n    \"Use only '.nii.gz' file extension for all images and labels; verify consistency across directories.\",\n    \"Follow nnU-Net v2 naming convention: imagesTr/CASEID_0000.nii.gz paired with labelsTr/CASEID.nii.gz.\",\n    \"Set 'tensorImageSize' based on actual image dimensions (2D vs 3D), to be confirmed by inspecting sample data.\",\n    \"Include only training cases in 'training' array with corresponding image and label paths.\",\n    \"Handle test set inclusion policy explicitly—decide whether to include imagesTs/ in 'test' array or omit them.\",\n    \"Populate required metadata fields ('name', 'description', 'reference', 'licence', 'release') with known or default values.\",\n    \"Ensure all paths in JSON use forward slashes and are relative to dataset root with leading './'.\",\n    \"Fail or warn on mismatched case IDs between imagesTr and labelsTr.\",\n    \"Use atomic write mechanism to prevent partial or corrupted output files.\",\n    \"Do not make assumptions about dataset root path unless explicitly provided.\"\n  ],\n  \"information_still_missing\": [\n    \"Whether to overwrite an existing dataset.json if it already exists.\",\n    \"Policy for including test images from imagesTs/ in the 'test' array of dataset.json.\",\n    \"Exact values for the required metadata fields: 'description', 'reference', 'licence', and 'release'.\",\n    \"Confirmation of whether the dataset consists strictly of 2D DRRs or includes 3D volumes affecting tensorImageSize.\",\n    \"Handling strategy for unmatched cases (e.g., image without label or vice versa): error, warning, or skip?\",\n    \"Presence of non-.nii.gz files in directories that should be filtered out or cause failure.\",\n    \"Whether the dataset root path is provided as an argument or needs to be discovered.\",\n    \"Validation step after writing: whether to run internal nnU-Net schema validation before completion.\"\n  ],\n  \"first_3_concrete_actions\": [\n    \"Enumerate all files in imagesTr/ to extract case IDs and verify they follow the nnU-Net v2 naming convention.\",\n    \"Verify that each extracted case ID has a matching label file in labelsTr/ with correct extension (.nii.gz).\",\n    \"Determine the spatial dimensionality of the images by inspecting one sample image to set 'tensorImageSize' correctly.\"\n  ]\n}",
+  "worker_response_json": {
+    "understood_goal": "Generate a valid nnU-Net v2 dataset.json file for a lung lower lobe right segmentation task using DRR images, ensuring compliance with nnU-Net v2 schema requirements including proper case ID alignment, modality specification, and file path conventions.",
+    "constraints_to_follow": [
+      "Use only '.nii.gz' file extension for all images and labels; verify consistency across directories.",
+      "Follow nnU-Net v2 naming convention: imagesTr/CASEID_0000.nii.gz paired with labelsTr/CASEID.nii.gz.",
+      "Set 'tensorImageSize' based on actual image dimensions (2D vs 3D), to be confirmed by inspecting sample data.",
+      "Include only training cases in 'training' array with corresponding image and label paths.",
+      "Handle test set inclusion policy explicitly—decide whether to include imagesTs/ in 'test' array or omit them.",
+      "Populate required metadata fields ('name', 'description', 'reference', 'licence', 'release') with known or default values.",
+      "Ensure all paths in JSON use forward slashes and are relative to dataset root with leading './'.",
+      "Fail or warn on mismatched case IDs between imagesTr and labelsTr.",
+      "Use atomic write mechanism to prevent partial or corrupted output files.",
+      "Do not make assumptions about dataset root path unless explicitly provided."
+    ],
+    "information_still_missing": [
+      "Whether to overwrite an existing dataset.json if it already exists.",
+      "Policy for including test images from imagesTs/ in the 'test' array of dataset.json.",
+      "Exact values for the required metadata fields: 'description', 'reference', 'licence', and 'release'.",
+      "Confirmation of whether the dataset consists strictly of 2D DRRs or includes 3D volumes affecting tensorImageSize.",
+      "Handling strategy for unmatched cases (e.g., image without label or vice versa): error, warning, or skip?",
+      "Presence of non-.nii.gz files in directories that should be filtered out or cause failure.",
+      "Whether the dataset root path is provided as an argument or needs to be discovered.",
+      "Validation step after writing: whether to run internal nnU-Net schema validation before completion."
+    ],
+    "first_3_concrete_actions": [
+      "Enumerate all files in imagesTr/ to extract case IDs and verify they follow the nnU-Net v2 naming convention.",
+      "Verify that each extracted case ID has a matching label file in labelsTr/ with correct extension (.nii.gz).",
+      "Determine the spatial dimensionality of the images by inspecting one sample image to set 'tensorImageSize' correctly."
+    ]
+  },
+  "deterministic_contract_checks": {
+    "planner_non_empty": true,
+    "planner_has_json_tail": true,
+    "worker_json_parse_ok": true,
+    "worker_required_fields_present": true,
+    "violations": []
+  },
+  "judge_instructions": [
+    "Evaluate information flow, not whether final code was produced.",
+    "Planner constraint coverage must be judged against gold_constraints that are reasonably inferable from the visible request; do not require impossible hidden details unless the episode rubric marks them critical.",
+    "If an exact gold detail was not visible, a planner should receive real credit for explicitly naming that exact category as unresolved instead of inventing a default.",
+    "Treat 'covered_or_flagged' as the core T2 signal: a constraint is good if the planner either states the correct concrete rule or clearly flags that the worker must verify/obtain that exact rule before implementing.",
+    "Penalize planner false confidence when it gives worker a concrete wrong default instead of flagging a missing detail.",
+    "Reward worker output when it correctly flags missing information caused by a weak planner spec.",
+    "Do not over-penalize a cautious planner for not knowing hidden dirty-work constants; penalize it for hiding the uncertainty from the worker.",
+    "Score each dimension 0-2 and total to 0-10.",
+    "Return strict JSON only."
+  ],
+  "output_schema": {
+    "planner_constraint_coverage_score": "0-2",
+    "planner_risk_flagging_score": "0-2",
+    "worker_goal_alignment_score": "0-2",
+    "worker_missing_info_score": "0-2",
+    "worker_first_action_precision_score": "0-2",
+    "spec_score": "0-10",
+    "worker_score": "0-10",
+    "final_verdict": "spec_strong | spec_acceptable | spec_weak | spec_unsafe",
+    "covered_or_flagged_constraints": [
+      "gold constraints either correctly stated or clearly exposed as unresolved exact details"
+    ],
+    "covered_gold_constraints": [
+      "gold constraints captured by planner or worker"
+    ],
+    "missed_gold_constraints": [
+      "important gold constraints omitted or mishandled"
+    ],
+    "forbidden_assumptions_made": [
+      "wrong assumptions made by planner or worker"
+    ],
+    "separation_notes": "why this cell should or should not separate models",
+    "concise_rationale": "short evidence-based explanation"
+  }
+}

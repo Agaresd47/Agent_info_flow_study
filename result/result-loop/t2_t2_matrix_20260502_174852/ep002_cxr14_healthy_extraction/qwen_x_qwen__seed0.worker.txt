@@ -1,0 +1,24 @@
+{
+  "understood_goal": "Extract images labeled as 'healthy' from the NIH ChestX-ray14 dataset. Copy all healthy patient images to a 'healthy' output directory, and move only those with single scans (one image per patient) to a 'healthy_clean' output directory.",
+  "constraints_to_follow": [
+    "Only images associated with patients labeled as 'healthy' should be considered.",
+    "A patient's image(s) must be copied/moved based on their scan count (single vs. multiple).",
+    "No data corruption or loss should occur during copying/moving operations.",
+    "All paths must be validated before use to prevent accidental overwrites or misplacements.",
+    "The output directories '<output_root>/healthy/' and '<output_root>/healthy_clean/' will be created if they don't exist.",
+    "Each row in the CSV corresponds to an individual image entry.",
+    "The CSV contains columns such as 'PatientID', 'Image Index', and 'Finding Labels'."
+  ],
+  "information_still_missing": [
+    "Which specific column(s) in the CSV indicate whether a case is 'healthy'?",
+    "How exactly is the 'single scan' condition defined? Is it simply one image per 'PatientID'?",
+    "Should existing files in output directories be overwritten or skipped?",
+    "What is the exact format of the 'Finding Labels' column (e.g., comma-separated, binary flags, etc.)?",
+    "Are there any special handling requirements for duplicate filenames or malformed entries in the CSV?"
+  ],
+  "first_3_concrete_actions": [
+    "Verify the structure and content of the CSV file to identify which column(s) contain health status information.",
+    "Check how the 'Finding Labels' column encodes 'healthy' status (e.g., does it contain the exact string 'healthy', or is it encoded differently?).",
+    "Determine the exact definition of 'single scan' by examining how many rows correspond to each 'PatientID' in the dataset."
+  ]
+}

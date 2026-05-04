@@ -1,0 +1,30 @@
+{
+  "condition": "B1_guardrailed",
+  "seed": 0,
+  "episode_id": "ep005_nnunet_dataset_json",
+  "planner_v1_spec": "DRY_RUN planner spec.\n\n```json\n{\"assumptions\":[],\"risks\":[],\"open_questions\":[]}\n```",
+  "your_worker_v1_interpretation": "{\"understood_goal\":\"DRY_RUN\",\"constraints_to_follow\":[],\"information_still_missing\":[],\"first_3_concrete_actions\":[]}",
+  "planner_v2_revision_message": "DRY_RUN planner revision.\n\n```json\n{\"corrected_constraints\":[],\"still_missing\":[],\"worker_next_focus\":[]}\n```",
+  "task": "Update your interpretation after reading the planner_v2 revision message.",
+  "output_schema": {
+    "understood_goal": "string",
+    "constraints_to_follow": [
+      "specific constraints now understood after the revision"
+    ],
+    "information_still_missing": [
+      "missing information that still blocks safe implementation"
+    ],
+    "first_3_concrete_actions": [
+      "the first three actions you would now take before writing final code"
+    ],
+    "understanding_delta": [
+      "what changed from your worker_v1 interpretation"
+    ]
+  },
+  "instructions": [
+    "Return strict JSON only.",
+    "Use planner_v2 to correct your earlier interpretation.",
+    "Do not invent details that planner_v1/planner_v2 still did not provide.",
+    "If the revision message still leaves a critical exact detail unknown, keep it in information_still_missing."
+  ]
+}

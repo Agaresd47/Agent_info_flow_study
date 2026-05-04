@@ -1,0 +1,24 @@
+{
+  "condition": "B0_guardrailed",
+  "seed": 1,
+  "episode_id": "ep005_nnunet_dataset_json",
+  "planner_spec": "### Implementation Plan: Generate `dataset.json` for nnU-Net v2 Dataset\n\n#### Observed Facts:\n- The dataset is structured under `<dataset_root>/Dataset001_LungLobeRight/`.\n- The directory contains `imagesTr/`, `labelsTr/`, and `imagesTs/`.\n- The task is to generate a `dataset.json` file for a single-class foreground: `lung_lower_lobe_right`.\n- The modality is DRR (not CT).\n\n---\n\n#### Assumptions:\n- The `imagesTr/` and `labelsTr/` directories contain corresponding image and label files (e.g., `.png`, `.nii.gz`) with matching filenames.\n- The `imagesTs/` directory may be empty or contain test images; it will be handled accordingly.\n- File extensions for images and labels are consistent within their respective directories.\n- The `dataset.json` will follow the nnU-Net v2 schema for dataset configuration.\n\n---\n\n#### Risks & Constraints:\n- Incorrectly mapping image and label files can lead to misalignment during training.\n- If `imagesTs/` is not used, it should be omitted or left empty in the JSON.\n- The `modality` field must be set to `\"DRR\"` as specified.\n- The `labels` dictionary must map `0` to `\"background\"` and `1` to `\"lung_lower_lobe_right\"`.\n- Any deviation from nnU-Net v2 schema may cause pipeline failures.\n\n---\n\n#### Open Questions:\n1. What are the exact file extensions for images and labels in `imagesTr/` and `labelsTr/`?\n2. Are there any additional metadata fields required in `dataset.json` beyond what is implied by the prompt?\n3. Should `training` and `test` keys in `dataset.json` include all available data, or only `imagesTr/` and `imagesTs/` respectively?\n\n---\n\n```json\n{\n  \"assumptions\": [\n    \"Images and labels in `imagesTr/` and `labelsTr/` have matching filenames and consistent extensions.\",\n    \"The `imagesTs/` directory exists but may be empty.\",\n    \"The modality is strictly defined as \\\"DRR\\\".\",\n    \"Only one foreground class (`lung_lower_lobe_right`) is present.\"\n  ],\n  \"risks\": [\n    \"Misalignment between image and label files due to mismatched filenames or extensions.\",\n    \"Incorrectly populating `training` or `test` entries in `dataset.json` if file structure is not fully known.\",\n    \"Failure to comply with nnU-Net v2 schema for `dataset.json`.\"\n  ],\n  \"open_questions\": [\n    \"What are the file extensions for images and labels?\",\n    \"Are additional metadata fields required in `dataset.json`?\",\n    \"Should `test` key include contents of `imagesTs/` even if empty?\"\n  ]\n}\n```",
+  "task": "Interpret the planner spec. Do not use outside knowledge except general engineering caution.",
+  "output_schema": {
+    "understood_goal": "string",
+    "constraints_to_follow": [
+      "specific constraints stated or strongly implied by the planner spec"
+    ],
+    "information_still_missing": [
+      "missing information that blocks safe implementation"
+    ],
+    "first_3_concrete_actions": [
+      "the first three actions you would take before writing final code"
+    ]
+  },
+  "instructions": [
+    "Return strict JSON only.",
+    "If the planner spec omits something important, put it in information_still_missing instead of inventing it.",
+    "Do not assume hidden dataset schema, file naming, algorithm details, or safety policy."
+  ]
+}

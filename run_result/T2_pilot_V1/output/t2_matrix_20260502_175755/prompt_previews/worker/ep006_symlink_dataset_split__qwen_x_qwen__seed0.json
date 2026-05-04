@@ -1,0 +1,24 @@
+{
+  "condition": "B0_guardrailed",
+  "seed": 0,
+  "episode_id": "ep006_symlink_dataset_split",
+  "planner_spec": "### Concrete Implementation Spec\n\n#### Observed Facts:\n- Input directory structure includes DRR images (`CT_no_bed/`) and organ-specific subdirectories (e.g., `Heart/`, `Lung/`, etc.), each containing patient-specific subfolders with part-level `.jpg` files.\n- Organ names are mapped to their respective part lists via a file named `organ_list.txt`.\n- Output should follow nnU-Net directory conventions with `{train,test,validation}` splits.\n- Split ratio is 8:1:1 for train/test/validation.\n\n#### Assumptions:\n- All organ directories have consistent naming patterns: `<organ_name>/<patient_id>_<organ_name>/<part>.jpg`.\n- The `organ_list.txt` contains one organ per line, and each organ maps to a list of parts (one part per line).\n- Each patient ID appears consistently across all organ directories.\n- The worker will use symbolic links to avoid copying data.\n- No existing output directories exist at the start; if they do, behavior is undefined unless otherwise specified.\n- File extensions are strictly `.jpg`.\n\n#### Constraints:\n- Symbolic links must be used to link input files into the appropriate output structure.\n- The split must respect patient-level consistency — no partial patients in multiple splits.\n- The mapping from organ to part must be respected exactly as defined in `organ_list.txt`.\n- The worker must not modify or delete any input files.\n- The worker must not overwrite existing output files or directories without explicit instruction (not provided).\n\n#### Missing Information / Open Questions:\n- Is there a specific naming convention for the `organ_list.txt`? (e.g., does it contain headers, comments, or special formatting?)\n- Should the worker validate that all organ directories contain the same set of patient IDs?\n- Are there any reserved or special characters in patient IDs that require escaping or handling?\n- What is the expected format of the `organ_list.txt`? (e.g., tab-separated, space-separated, or newline-delimited?)\n- How should the worker handle cases where a patient has missing organs or parts?\n- Is there a requirement for a completion marker or checkpoint mechanism to resume from a previous run?\n- Should the worker enforce deterministic shuffling based on seed or allow arbitrary ordering?\n\n---\n\n```json\n{\n  \"assumptions\": [\n    \"All organ directories follow consistent naming patterns.\",\n    \"The organ_list.txt defines organ-to-part mappings with one part per line.\",\n    \"Each patient ID exists uniformly across all organ directories.\",\n    \"Symbolic links are used to avoid data duplication.\",\n    \"No existing output directories exist at the start.\",\n    \"File extensions are strictly .jpg.\"\n  ],\n  \"risks\": [\n    \"Inconsistent patient IDs across organ directories may lead to incomplete or incorrect splits.\",\n    \"Improper handling of symbolic links could result in broken links or incorrect data access.\",\n    \"Misinterpretation of organ_list.txt format may cause incorrect mapping of organs to parts.\",\n    \"Failure to maintain patient-level consistency during splitting can break dataset integrity.\"\n  ],\n  \"open_questions\": [\n    \"What is the exact format of organ_list.txt?\",\n    \"Should the worker validate uniformity of patient IDs across organ directories?\",\n    \"Are there special characters in patient IDs requiring escaping?\",\n    \"How should missing organs/parts be handled?\",\n    \"Is a completion marker or checkpoint mechanism required?\",\n    \"Is deterministic shuffling enforced or allowed?\"\n  ]\n}\n```",
+  "task": "Interpret the planner spec. Do not use outside knowledge except general engineering caution.",
+  "output_schema": {
+    "understood_goal": "string",
+    "constraints_to_follow": [
+      "specific constraints stated or strongly implied by the planner spec"
+    ],
+    "information_still_missing": [
+      "missing information that blocks safe implementation"
+    ],
+    "first_3_concrete_actions": [
+      "the first three actions you would take before writing final code"
+    ]
+  },
+  "instructions": [
+    "Return strict JSON only.",
+    "If the planner spec omits something important, put it in information_still_missing instead of inventing it.",
+    "Do not assume hidden dataset schema, file naming, algorithm details, or safety policy."
+  ]
+}

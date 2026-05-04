@@ -1,0 +1,21 @@
+{
+  "understood_goal": "Generate a `dataset.json` file for an nnU-Net v2 dataset that defines a single-class foreground ('lung_lower_lobe_right') with modality 'DRR', using the provided directory structure and file naming conventions.",
+  "constraints_to_follow": [
+    "The generated `dataset.json` must conform to the nnU-Net v2 schema.",
+    "The modality must be explicitly set to 'DRR'.",
+    "The labels dictionary must map 0 to 'background' and 1 to 'lung_lower_lobe_right'.",
+    "Image and label files in `imagesTr/` and `labelsTr/` must have matching filenames and consistent extensions.",
+    "The `imagesTs/` directory may exist but should be handled appropriately (either included or omitted).",
+    "All assumptions and risks mentioned in the planner spec must be considered during implementation."
+  ],
+  "information_still_missing": [
+    "Exact file extensions for images and labels in `imagesTr/` and `labelsTr/`.",
+    "Whether the `test` key in `dataset.json` should include contents of `imagesTs/` even if empty.",
+    "Any additional metadata fields required in `dataset.json` beyond those implied by the prompt."
+  ],
+  "first_3_concrete_actions": [
+    "Verify the contents of `imagesTr/` and `labelsTr/` to confirm matching filenames and determine file extensions.",
+    "Check whether `imagesTs/` contains any files or is empty, and decide how to represent it in the JSON.",
+    "Confirm if any other metadata fields are needed in `dataset.json` based on nnU-Net v2 requirements."
+  ]
+}

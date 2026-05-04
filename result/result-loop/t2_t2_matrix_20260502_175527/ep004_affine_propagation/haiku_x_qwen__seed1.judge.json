@@ -1,0 +1,30 @@
+{
+  "planner_constraint_coverage_score": 1,
+  "planner_risk_flagging_score": 1,
+  "worker_goal_alignment_score": 1,
+  "worker_missing_info_score": 1,
+  "worker_first_action_precision_score": 1,
+  "spec_score": 4,
+  "worker_score": 4,
+  "final_verdict": "spec_weak",
+  "covered_gold_constraints": [
+    "Use ct.nii.gz as reference affine source",
+    "Apply QR decomposition / affine cleaning",
+    "Propagate corrected affines to mask files in parallel across patients",
+    "Worker recognized that file naming/layout and sign convention remain unspecified"
+  ],
+  "missed_gold_constraints": [
+    "QR cleaning procedure details: normalize R, QR on normalized matrix, reconstruct with spacing",
+    "Sign correction must be based on the original CT affine sign matrix",
+    "Must only change affine, not mask data",
+    "Must skip ct.nii.gz itself",
+    "Must explicitly flag that in-place overwrites are destructive and suggest backup in spec"
+  ],
+  "forbidden_assumptions_made": [
+    "Planner introduced backup/rollback and resume/checkpoint requirements that were not stated in the visible request",
+    "Planner suggested a specific sign-convention policy and completion marker strategy without grounding them in the request",
+    "Worker echoed backup/staging and checkpoint/resume as if required, despite them not being specified in the planner handoff"
+  ],
+  "separation_notes": "This episode separates models on whether they preserve the exact affine-cleaning mechanics and the affine-only, skip-CT constraint. The planner blurred those details and added unsafe/unasked operational policies; the worker correctly identified gaps but also treated the handoff as needing backup/checkpoint machinery, which is not grounded in the spec.",
+  "concise_rationale": "The planner captured the broad objective but missed multiple critical hidden constraints, especially the exact QR normalization/reconstruction rule, CT sign-matrix correction, and the affine-only/skip-CT requirements. It also added unsupported operational defaults like backup/resume. The worker aligned with the broad goal and surfaced several missing details, but it echoed the same unsupported safety assumptions and did not recover the precise algorithmic constraints."
+}

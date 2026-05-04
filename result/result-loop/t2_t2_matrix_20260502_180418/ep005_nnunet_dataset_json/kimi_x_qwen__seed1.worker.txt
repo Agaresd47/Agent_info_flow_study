@@ -1,0 +1,33 @@
+{
+  "understood_goal": "Generate a valid nnU-Net v2 dataset.json file for a lung lower lobe right segmentation task using DRR images, ensuring strict alignment between training images and labels, and adhering to nnU-Net v2 schema requirements.",
+  "constraints_to_follow": [
+    "The dataset directory is <dataset_root>/Dataset001_LungLobeRight/ with subdirectories imagesTr/, labelsTr/, imagesTs/.",
+    "Training images must follow the naming pattern CASE_ID_0000.{ext}, and labels must follow CASE_ID.{ext}.",
+    "Every training image must have a corresponding label and vice versa.",
+    "The modality field must be {0: \"DRR\"} as specified.",
+    "The labels dictionary must map 0 to \"background\" and 1 to \"lung_lower_lobe_right\".",
+    "Paths in the JSON must be relative to the dataset.json location.",
+    "The tensorImageSize must be either \"2D\" or \"3D\", which is currently ambiguous.",
+    "The name field must be derived from the directory name or explicitly specified.",
+    "No destructive writes are allowed; if dataset.json already exists, the worker must abort or prompt.",
+    "All referenced files must exist before generating the JSON.",
+    "The test set must be listed with image paths only, since labels are absent."
+  ],
+  "information_still_missing": [
+    "What is the exact file extension of the DRR images and labels?",
+    "Are the DRR images 2D or 3D volumes? This affects tensorImageSize.",
+    "Does nnU-Net v2 accept arbitrary modality strings like \"DRR\"?",
+    "What is the canonical path format in dataset.json — with or without leading './'?",
+    "What is the overwrite policy if dataset.json already exists?",
+    "Are there multi-channel cases requiring _0001, _0002 suffixes beyond _0000?",
+    "Should the 'name' field exactly match the directory name 'Dataset001_LungLobeRight'?",
+    "What indentation/formatting is required for the output JSON?",
+    "Are labels stored as binary masks (0/1) or with additional background class already encoded?",
+    "Is there a required 'regions' or 'regions_class_order' field for single-class tasks in v2?"
+  ],
+  "first_3_concrete_actions": [
+    "List all files in imagesTr/, labelsTr/, and imagesTs/ to identify file extensions and validate naming conventions.",
+    "Parse filenames to extract base case IDs and confirm strict alignment between images and labels in the training set.",
+    "Verify that all referenced files exist and report any mismatches or missing files before proceeding with JSON generation."
+  ]
+}

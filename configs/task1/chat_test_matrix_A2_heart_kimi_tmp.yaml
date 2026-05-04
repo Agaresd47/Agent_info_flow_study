@@ -1,0 +1,14 @@
+tasks:
+  - "data/t1_tasks/heart_mask_merge_cleanup.yaml"
+
+runners:
+  - label: "kimi_k2_5"
+    model_id: "moonshotai.kimi-k2.5"
+
+judge_model: "gpt-5.4-mini"
+condition: "A2"
+runner_visibility: "benchmark"
+fail_on_leak: true
+max_runner_tokens: 1200
+max_judge_tokens: 1800
+out_dir: "run_result/Chat_test/output/A2_heart_kimi_tmp"

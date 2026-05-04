@@ -1,0 +1,24 @@
+{
+  "understood_goal": "Extract healthy chest X-ray samples from the NIH ChestX-ray14 dataset by copying images labeled as 'healthy' to one directory and single-scanned healthy images to another directory.",
+  "constraints_to_follow": [
+    "The CSV metadata file contains columns for patient IDs and labels.",
+    "Labels indicating 'healthy' status must be clearly identified (e.g., 'No Finding').",
+    "Each row in the CSV corresponds to one image entry.",
+    "Patient ID column uniquely identifies patients.",
+    "Image filenames match the pattern used in the dataset.",
+    "The 'healthy_clean' subset requires filtering for patients with exactly one scan.",
+    "Output directories must be created if they do not exist.",
+    "Source image files must be validated for existence before operations."
+  ],
+  "information_still_missing": [
+    "What specific label(s) indicate 'healthy' status in the CSV?",
+    "How is the patient ID field named in the CSV?",
+    "Are there any special characters or encoding issues in the CSV that might affect parsing?",
+    "Should the worker verify that the source image files actually exist before attempting operations?"
+  ],
+  "first_3_concrete_actions": [
+    "Examine the structure of <dataset_root>/Data_Entry_2017.csv to identify relevant columns such as patient ID and label fields.",
+    "Determine how to recognize 'healthy' cases based on label values by inspecting sample rows in the CSV.",
+    "Create necessary output directories (<output_root>/healthy/ and <output_root>/healthy_clean/) if they don't already exist."
+  ]
+}

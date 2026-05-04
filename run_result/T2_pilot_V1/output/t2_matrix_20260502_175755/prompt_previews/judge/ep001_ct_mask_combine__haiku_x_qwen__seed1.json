@@ -1,0 +1,134 @@
+{
+  "episode_id": "ep001_ct_mask_combine",
+  "condition": "B0_guardrailed",
+  "seed": 1,
+  "pair_label": "haiku_x_qwen",
+  "planner_label": "haiku_4_5",
+  "worker_label": "qwen3_coder_30b",
+  "planner_visible_request": "我有一批病人 CT，每个病人在 <dataset_root>/ct/ 下有一个 <patient_id>.nii.gz，\n在 <dataset_root>/mask/<patient_id>_total/ 下有 TotalSeg 输出的若干结构 mask。\n\n请帮我对每个病人做：\n1. 把同一类的多个结构 mask 合成一个二值 mask（比如所有 rib_left_* 和 rib_right_* 合成一个 rib mask）\n2. 用 CT 的强度填到 mask 区域，得到 \"real-intensity mask\"\n3. 把所有结构合在一起作为前景，剩下的体素当作软组织 CT 输出一份\n\n要支持中途崩溃后续跑。多机会跑很多病人，速度优先。\n输出到 <output_root>/<patient_id>/ 下。\n",
+  "gold_task_goal": "对每个病人，按预定义的结构组（rib / lung / spine / heart / aorta / other_bones）\n正则匹配 TotalSeg 输出文件，每组合并为单个二值 mask（np.maximum 语义），\n并基于该 mask 抠出 real-intensity mask 和软组织 CT。\n支持续跑（基于 .processing_done flag）。\npatient-level 并行。\n",
+  "gold_constraints": [
+    "结构合并算子必须是 np.maximum，不是 np.add（避免重叠区域溢出）",
+    "续跑判定基于 <output_root>/<patient_id>/.processing_done 文件存在性",
+    "结构选择用正则模式（如 rib_(left|right)_\\d+\\.nii\\.gz），不能硬编码完整列表",
+    "affine 和 header 取自第一个被合并的 mask 文件",
+    "软组织 CT = CT 数据，把所有结构区域填为 padding_value（默认 5）",
+    "real-intensity mask 中非 mask 区域填 -999.9（不是 0）",
+    "并行粒度是 patient，单 patient 内串行",
+    "成功完成才写 .processing_done，部分完成不写"
+  ],
+  "gold_relevant_files": [
+    "<dataset_root>/ct/<patient_id>.nii.gz",
+    "<dataset_root>/mask/<patient_id>_total/",
+    "<output_root>/<patient_id>/.processing_done",
+    "<output_root>/<patient_id>/<patient_id>_<group>_mask.nii.gz",
+    "<output_root>/<patient_id>/<patient_id>_<group>_real.nii.gz",
+    "<output_root>/<patient_id>/<patient_id>_soft_tissue.nii.gz",
+    "<output_root>/processing_success.log"
+  ],
+  "judge_only_rubric": {
+    "critical_constraints_min_for_acceptable": 3,
+    "critical_constraints_min_for_strong": 5,
+    "score_caps": {
+      "max_spec_score_if_no_gold_constraint_captured": 3,
+      "max_spec_score_if_forbidden_assumption_introduced": 5,
+      "max_worker_score_if_missing_info_empty_under_weak_spec": 6
+    },
+    "positive_signals": [
+      "Planner states concrete constraints rather than delegating them vaguely.",
+      "Planner flags unresolved choices and unsafe/destructive operations.",
+      "Worker preserves the planner intent while identifying missing implementation details."
+    ],
+    "negative_signals": [
+      "Planner introduces a convenient but wrong default.",
+      "Worker treats an underspecified handoff as complete.",
+      "Worker first actions target files or schemas not grounded in the planner spec."
+    ]
+  },
+  "episode_gold_extras": {},
+  "expected_v1_pitfalls": [
+    "Omit or blur critical constraint: 结构合并算子必须是 np.maximum，不是 np.add（避免重叠区域溢出）",
+    "Omit or blur critical constraint: 续跑判定基于 <output_root>/<patient_id>/.processing_done 文件存在性",
+    "Omit or blur critical constraint: 结构选择用正则模式（如 rib_(left|right)_\\d+\\.nii\\.gz），不能硬编码完整列表"
+  ],
+  "decoys": [
+    "Worker may fill in a plausible implementation default that the planner did not actually specify.",
+    "Worker may treat a visible path or schema summary as complete when it is only partial."
+  ],
+  "forbidden_assumptions": [
+    "Do not infer hidden file naming, merge semantics, resume markers, or destructive write policy unless the planner spec states them."
+  ],
+  "planner_response_text": "# Implementation Spec: CT Mask Combine Worker\n\n## Overview\nThis worker processes patient CT scans and TotalSeg masks to produce:\n1. **Grouped structure masks** (e.g., combining rib_left_* and rib_right_* into single rib mask)\n2. **Real-intensity masks** (CT intensity values within mask regions)\n3. **Composite foreground + soft-tissue fallback** output\n\nThe worker must support resumption after failure and prioritize throughput for multi-machine parallel execution.\n\n---\n\n## Observed Facts\n\n- Input CT: `<dataset_root>/ct/<patient_id>.nii.gz` (single file per patient)\n- Input masks: `<dataset_root>/mask/<patient_id>_total/` (directory with multiple mask files from TotalSeg)\n- Output destination: `<output_root>/<patient_id>/` (directory per patient)\n- Format: NIfTI (.nii.gz)\n- Constraint: Must resume after mid-process failure\n- Constraint: Multi-machine, multi-patient parallelization expected\n\n---\n\n## Processing Pipeline\n\n### Phase 1: Mask Grouping\n- **Input**: All mask files in `<dataset_root>/mask/<patient_id>_total/`\n- **Task**: Identify which masks belong to the same anatomical group (e.g., rib_left_*, rib_right_*)\n- **Output**: Grouped binary masks (one per group)\n- **Missing**: Exact grouping rules/mapping (e.g., is it prefix-based? is there a config file?)\n\n### Phase 2: Real-Intensity Masking\n- **Input**: CT volume + grouped binary masks from Phase 1\n- **Task**: For each grouped mask, extract CT intensity values where mask == 1\n- **Output**: NIfTI volumes with original CT intensities in mask regions\n- **Missing**: What value/handling for mask == 0 regions? (zeros? NaN? background intensity?)\n\n### Phase 3: Composite Foreground + Soft-Tissue Fallback\n- **Input**: All grouped masks + original CT\n- **Task**: \n  - Union all grouped masks → foreground binary mask\n  - For voxels in foreground: use CT intensity\n  - For voxels outside foreground: assign soft-tissue CT value\n- **Output**: Single composite volume\n- **Missing**: Definition of \"soft-tissue CT value\" (fixed HU? median? mode of background?)\n\n---\n\n## Resumption & Checkpointing\n\n**Requirement**: Worker must detect and skip completed patients without re-processing.\n\n**Missing specifics**:\n- What marks a patient as \"complete\"? (e.g., presence of final output file? completion marker file?)\n- If partial outputs exist (e.g., Phase 1 done, Phase 2 failed), should worker resume from Phase 2 or restart?\n- Overwrite policy: if output files exist, overwrite or skip?\n- Atomic write semantics: should intermediate outputs be written to temp location then moved?\n\n---\n\n## File Naming & Output Schema\n\n**Output directory structure**: `<output_root>/<patient_id>/`\n\n**Missing**:\n- Exact output filenames for each phase (e.g., `grouped_masks.nii.gz`? `real_intensity_<group_name>.nii.gz`?)\n- Should each grouped mask be a separate file or stacked in one volume?\n- Naming convention for grouped masks (e.g., how to name the rib group output?)\n- Should composite output be a single file or multiple files?\n\n---\n\n## Data Handling & Safety\n\n**Constraints**:\n- NIfTI I/O must preserve spatial metadata (affine, header)\n- Mask operations must be binary (0/1) or clearly defined\n- Memory efficiency: CT + multiple masks may be large; consider streaming or chunked I/O\n\n**Missing**:\n- Expected volume dimensions / memory footprint?\n- Should worker validate input file integrity before processing?\n- Error handling: fail fast or log and continue to next patient?\n\n---\n\n## Parallelization & Throughput\n\n**Observed**: Multi-machine, multi-patient execution expected.\n\n**Missing**:\n- Patient discovery: how does worker get list of patients? (scan directory? config file? queue?)\n- Locking mechanism: if multiple workers process same patient, how to prevent race conditions?\n- Batch size recommendation?\n\n---\n\n## Risks & Constraints\n\n1. **Irreversible writes**: If overwrite policy is not specified, worker could destroy existing outputs.\n2. **Incomplete resumption logic**: Partial outputs without clear markers could cause re-processing or data corruption.\n3. **Mask grouping ambiguity**: Without explicit mapping, worker may misgroup structures.\n4. **Background value undefined**: Phase 3 soft-tissue assignment is underspecified; wrong choice could corrupt output.\n5. **Memory pressure**: Large volumes + parallel workers could exhaust resources; no guidance on chunking.\n6. **NIfTI metadata loss**: Careless I/O could strip spatial information.\n\n---\n\n## First Actions for Worker\n\n1. **Validate inputs exist**: Check `<dataset_root>/ct/<patient_id>.nii.gz` and `<dataset_root>/mask/<patient_id>_total/` are readable.\n2. **Check resumption state**: Determine if `<output_root>/<patient_id>/` already contains valid outputs; if so, skip or resume.\n3. **List mask files**: Enumerate all files in mask directory; identify naming pattern.\n4. **Load CT**: Read NIfTI header and volume; verify spatial metadata.\n5. **Load masks**: Read all mask files; verify binary values and spatial alignment with CT.\n\n---\n\n```json\n{\n  \"assumptions\": [\n    \"All input CT files are valid NIfTI (.nii.gz) with consistent spatial dimensions per patient.\",\n    \"All mask files in <dataset_root>/mask/<patient_id>_total/ are binary (0/1) and spatially aligned with corresponding CT.\",\n    \"TotalSeg mask filenames follow a consistent naming convention (e.g., structure_name.nii.gz).\",\n    \"Output directory <output_root>/<patient_id>/ can be created if it does not exist.\",\n    \"Worker has read access to dataset_root and write access to output_root.\",\n    \"NIfTI affine and header metadata should be preserved in all outputs.\"\n  ],\n  \"risks\": [\n    \"CRITICAL: Overwrite policy undefined—worker could destroy existing outputs if not specified.\",\n    \"CRITICAL: Resumption marker undefined—worker may re-process or partially process patients, causing data inconsistency.\",\n    \"Mask grouping rules not provided—worker may misidentify which masks belong to same anatomical group.\",\n    \"Background value for soft-tissue fallback undefined—incorrect assignment could corrupt composite output.\",\n    \"Memory exhaustion risk if volumes are large and multiple workers run on same machine without coordination.\",\n    \"Race condition risk if multiple workers attempt to process same patient simultaneously without locking.\",\n    \"NIfTI I/O library choice not specified—different libraries may handle metadata differently.\",\n    \"Error handling strategy not defined—unclear whether to fail fast, log and continue, or retry.\"\n  ],\n  \"open_questions\": [\n    \"What is the exact mask grouping mapping? (e.g., is there a config file, or should worker infer from filename prefixes?)\",\n    \"How should grouped masks be named in output? (e.g., 'rib.nii.gz', 'rib_combined.nii.gz'?)\",\n    \"Should each grouped mask be output as a separate file or stacked into a single multi-channel volume?\",\n    \"What value should be assigned to voxels outside the foreground mask in Phase 3? (fixed HU value? computed statistic?)\",\n    \"What marks a patient as 'complete' for resumption purposes? (presence of specific file? completion marker?)\",\n    \"If partial outputs exist, should worker resume from last completed phase or restart from scratch?\",\n    \"Overwrite policy: should existing output files be overwritten, skipped, or moved to backup?\",\n    \"Should intermediate outputs be written atomically (temp file + move) or directly?\",\n    \"How does worker discover the list of patients to process? (directory scan? config file? queue system?)\",\n    \"Is there a locking mechanism to prevent multiple workers from processing the same patient?\",\n    \"What is the expected volume size and memory budget per patient?\",\n    \"Should worker validate input file integrity (e.g., NIfTI header check) before processing?\",\n    \"What is the error handling strategy? (fail fast, log and continue, retry with backoff?)\",\n    \"Are there any constraints on NIfTI I/O library choice (e.g., nibabel, SimpleITK, ITK)?\",\n    \"Should worker log processing time and throughput metrics?\"\n  ]\n}\n```",
+  "worker_response_text": "{\n  \"understood_goal\": \"Process patient CT scans and TotalSeg masks to generate grouped structure masks, real-intensity masks, and a composite foreground + soft-tissue fallback output, while supporting resumption and parallel execution.\",\n  \"constraints_to_follow\": [\n    \"Must resume after mid-process failure by detecting completed patients or phases.\",\n    \"Support multi-machine, multi-patient parallelization.\",\n    \"Preserve NIfTI spatial metadata (affine, header) in all outputs.\",\n    \"Handle large volumes efficiently, considering memory usage.\",\n    \"Ensure atomic writes for intermediate outputs to avoid corruption.\",\n    \"Validate input file integrity before processing.\",\n    \"Use binary mask operations or clearly define non-binary behavior.\",\n    \"Follow a consistent naming and output schema for all generated files.\"\n  ],\n  \"information_still_missing\": [\n    \"Exact mask grouping rules (e.g., prefix-based grouping or external mapping).\",\n    \"Naming convention for grouped mask outputs.\",\n    \"Whether each grouped mask should be a separate file or stacked in one volume.\",\n    \"Definition of the \\\"soft-tissue CT value\\\" used in Phase 3.\",\n    \"What marks a patient as complete for resumption purposes.\",\n    \"Policy for handling partial outputs (resume from last completed phase or restart).\",\n    \"Overwrite policy for existing output files.\",\n    \"Atomic write semantics for intermediate outputs (temp file + move).\",\n    \"Mechanism for discovering the list of patients to process.\",\n    \"Locking mechanism to prevent race conditions during parallel execution.\",\n    \"Expected volume dimensions or memory footprint per patient.\",\n    \"Input file validation strategy (e.g., NIfTI header checks).\",\n    \"Error handling strategy (fail fast, log and continue, retry).\",\n    \"Preferred NIfTI I/O library (e.g., nibabel, SimpleITK).\",\n    \"Whether processing time and throughput metrics should be logged.\"\n  ],\n  \"first_3_concrete_actions\": [\n    \"Validate that the input CT file and mask directory exist and are readable.\",\n    \"Enumerate all mask files in the mask directory to determine naming patterns and structure.\",\n    \"Check if the output directory already exists and contains valid completed outputs to decide whether to skip or resume processing.\"\n  ]\n}",
+  "worker_response_json": {
+    "understood_goal": "Process patient CT scans and TotalSeg masks to generate grouped structure masks, real-intensity masks, and a composite foreground + soft-tissue fallback output, while supporting resumption and parallel execution.",
+    "constraints_to_follow": [
+      "Must resume after mid-process failure by detecting completed patients or phases.",
+      "Support multi-machine, multi-patient parallelization.",
+      "Preserve NIfTI spatial metadata (affine, header) in all outputs.",
+      "Handle large volumes efficiently, considering memory usage.",
+      "Ensure atomic writes for intermediate outputs to avoid corruption.",
+      "Validate input file integrity before processing.",
+      "Use binary mask operations or clearly define non-binary behavior.",
+      "Follow a consistent naming and output schema for all generated files."
+    ],
+    "information_still_missing": [
+      "Exact mask grouping rules (e.g., prefix-based grouping or external mapping).",
+      "Naming convention for grouped mask outputs.",
+      "Whether each grouped mask should be a separate file or stacked in one volume.",
+      "Definition of the \"soft-tissue CT value\" used in Phase 3.",
+      "What marks a patient as complete for resumption purposes.",
+      "Policy for handling partial outputs (resume from last completed phase or restart).",
+      "Overwrite policy for existing output files.",
+      "Atomic write semantics for intermediate outputs (temp file + move).",
+      "Mechanism for discovering the list of patients to process.",
+      "Locking mechanism to prevent race conditions during parallel execution.",
+      "Expected volume dimensions or memory footprint per patient.",
+      "Input file validation strategy (e.g., NIfTI header checks).",
+      "Error handling strategy (fail fast, log and continue, retry).",
+      "Preferred NIfTI I/O library (e.g., nibabel, SimpleITK).",
+      "Whether processing time and throughput metrics should be logged."
+    ],
+    "first_3_concrete_actions": [
+      "Validate that the input CT file and mask directory exist and are readable.",
+      "Enumerate all mask files in the mask directory to determine naming patterns and structure.",
+      "Check if the output directory already exists and contains valid completed outputs to decide whether to skip or resume processing."
+    ]
+  },
+  "deterministic_contract_checks": {
+    "planner_non_empty": true,
+    "planner_has_json_tail": true,
+    "worker_json_parse_ok": true,
+    "worker_required_fields_present": true,
+    "violations": []
+  },
+  "judge_instructions": [
+    "Evaluate information flow, not whether final code was produced.",
+    "Planner constraint coverage must be judged against gold_constraints that are reasonably inferable from the visible request; do not require impossible hidden details unless the episode rubric marks them critical.",
+    "Penalize planner false confidence when it gives worker a concrete wrong default instead of flagging a missing detail.",
+    "Reward worker output when it correctly flags missing information caused by a weak planner spec.",
+    "Score each dimension 0-2 and total to 0-10.",
+    "Return strict JSON only."
+  ],
+  "output_schema": {
+    "planner_constraint_coverage_score": "0-2",
+    "planner_risk_flagging_score": "0-2",
+    "worker_goal_alignment_score": "0-2",
+    "worker_missing_info_score": "0-2",
+    "worker_first_action_precision_score": "0-2",
+    "spec_score": "0-10",
+    "worker_score": "0-10",
+    "final_verdict": "spec_strong | spec_acceptable | spec_weak | spec_unsafe",
+    "covered_gold_constraints": [
+      "gold constraints captured by planner or worker"
+    ],
+    "missed_gold_constraints": [
+      "important gold constraints omitted or mishandled"
+    ],
+    "forbidden_assumptions_made": [
+      "wrong assumptions made by planner or worker"
+    ],
+    "separation_notes": "why this cell should or should not separate models",
+    "concise_rationale": "short evidence-based explanation"
+  }
+}

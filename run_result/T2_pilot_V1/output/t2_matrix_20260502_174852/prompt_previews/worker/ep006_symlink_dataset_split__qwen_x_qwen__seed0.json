@@ -1,0 +1,24 @@
+{
+  "condition": "B0_guardrailed",
+  "seed": 0,
+  "episode_id": "ep006_symlink_dataset_split",
+  "planner_spec": "### Implementation Plan\n\n#### Observed Facts:\n- Input data is organized under `<input_root>/` with subdirectories for each organ (e.g., `Heart`, `Lung`, etc.).\n- Each organ has its own subdirectory structure where patient IDs and parts are used as directory/file names.\n- The DRR image files are named `<patient_id>.jpg` and located directly under `CT_no_bed/`.\n- Organ-specific masks are stored in subdirectories like `<organ>/<patient_id>_<organ>/<part>.jpg`.\n- A file `organ_list.txt` exists to define which parts belong to which organs (multi-to-many mapping).\n- Output should follow nnU-Net directory conventions: `<output_root>/{train,test,validation}/...`\n- Data split ratio is 8:1:1 for train/test/validation.\n\n---\n\n#### Assumptions:\n- All organ directories contain consistent naming patterns for patient IDs and parts.\n- The `organ_list.txt` file contains valid organ-part mappings in a format that can be parsed line-by-line.\n- Patient IDs in all organ directories match those in `CT_no_bed/`.\n- No duplicate or malformed entries exist in input data.\n- Symbolic links will be created using standard OS tools (`ln -s`) without additional tooling.\n\n---\n\n#### Constraints:\n- Must preserve original file integrity; no modification of source files allowed.\n- Splitting must be deterministic based on seed (already provided as 0).\n- Symbolic link creation must be safe and avoid overwriting existing links.\n- Directory structures must conform exactly to nnU-Net expectations after linking.\n- Mapping from organ → part must support many-to-many relationships as defined in `organ_list.txt`.\n\n---\n\n#### Risks:\n- Incorrect parsing of `organ_list.txt` could lead to wrong associations between organs and parts.\n- Inconsistent naming across organ directories may cause missing or incorrect symbolic links.\n- If `organ_list.txt` does not list all parts for an organ, some parts might be omitted during linking.\n- Hardcoded ratios (8:1:1) assume sufficient number of patients; insufficient data could result in empty splits.\n\n---\n\n#### Open Questions:\n1. What is the exact format of `organ_list.txt`? Is it one organ per line with space-separated parts?\n2. Should the worker validate that every patient ID in `CT_no_bed/` has corresponding entries in all organ directories?\n3. Are there any special characters or encoding issues in patient IDs or part names that require sanitization?\n4. How should the worker handle cases where a patient lacks certain organs or parts?\n\n---\n\n```json\n{\n  \"assumptions\": [\n    \"All organ directories follow consistent naming patterns.\",\n    \"The organ-list file defines multi-to-many mappings via line-based syntax.\",\n    \"Patient IDs in all organ directories match those in CT_no_bed.\",\n    \"No duplicate or malformed entries exist in input data.\",\n    \"Symbolic links will be created using standard OS tools.\"\n  ],\n  \"risks\": [\n    \"Incorrect parsing of organ_list.txt may misassign parts to organs.\",\n    \"Inconsistent naming across organ directories may break symbolic link creation.\",\n    \"Missing or incomplete organ/part data in input may lead to incomplete output.\",\n    \"Hardcoded 8:1:1 split assumes enough patients; small datasets may produce empty splits.\"\n  ],\n  \"open_questions\": [\n    \"What is the exact format of organ_list.txt?\",\n    \"Should validation ensure all organ directories have matching patient IDs?\",\n    \"Are there special characters or encoding concerns in patient IDs or part names?\",\n    \"How should missing organ/part data be handled?\"\n  ]\n}\n```",
+  "task": "Interpret the planner spec. Do not use outside knowledge except general engineering caution.",
+  "output_schema": {
+    "understood_goal": "string",
+    "constraints_to_follow": [
+      "specific constraints stated or strongly implied by the planner spec"
+    ],
+    "information_still_missing": [
+      "missing information that blocks safe implementation"
+    ],
+    "first_3_concrete_actions": [
+      "the first three actions you would take before writing final code"
+    ]
+  },
+  "instructions": [
+    "Return strict JSON only.",
+    "If the planner spec omits something important, put it in information_still_missing instead of inventing it.",
+    "Do not assume hidden dataset schema, file naming, algorithm details, or safety policy."
+  ]
+}

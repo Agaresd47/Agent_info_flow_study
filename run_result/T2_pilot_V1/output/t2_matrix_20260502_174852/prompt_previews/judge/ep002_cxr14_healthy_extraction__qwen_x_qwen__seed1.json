@@ -1,0 +1,121 @@
+{
+  "episode_id": "ep002_cxr14_healthy_extraction",
+  "condition": "B0_guardrailed",
+  "seed": 1,
+  "pair_label": "qwen_x_qwen",
+  "planner_label": "qwen3_coder_30b",
+  "worker_label": "qwen3_coder_30b",
+  "planner_visible_request": "NIH ChestX-ray14 数据集，我想抽出\"健康\"的样本做对照。\n\n数据：\n- CSV 元数据：<dataset_root>/Data_Entry_2017.csv\n- 图像目录：<dataset_root>/image/\n\n分两步：\n1. 把\"健康\"患者的图像 copy 到 <output_root>/healthy/\n2. 在第一步基础上，再 move 一份只做过单次扫描的健康患者图像到 <output_root>/healthy_clean/\n\n最好用 pandas 读 CSV。\n",
+  "gold_task_goal": "Step 1: 找出\"所有扫描都是 No Finding\"的 patient（patient-level 健康），\n把这些 patient 名下所有图像 copy 到 healthy/。\nStep 2: 在 step1 的基础上，进一步筛选\"在 CSV 中只出现一行\"的 patient，\n把这些 patient 的图像 move 到 healthy_clean/。\n",
+  "gold_constraints": [
+    "健康判定必须是 patient-level：该 patient 所有 Finding Labels 都为 'No Finding'",
+    "不允许只看单行 'No Finding' 就 copy 该图像（会把混合患者的健康片段误纳入）",
+    "Step 1 是 copy（保留原图），Step 2 是 move（从 healthy/ 移到 healthy_clean/）",
+    "Step 2 的 '单次扫描' 判定是 patient 在原始 CSV 中只出现一行",
+    "图像路径拼接：<dataset_root>/image/<Image Index>",
+    "两步操作必须先后执行；step2 依赖 step1 的输出",
+    "目标目录不存在时自动创建"
+  ],
+  "gold_relevant_files": [
+    "<dataset_root>/Data_Entry_2017.csv",
+    "<dataset_root>/image/",
+    "<output_root>/healthy/",
+    "<output_root>/healthy_clean/"
+  ],
+  "judge_only_rubric": {
+    "critical_constraints_min_for_acceptable": 3,
+    "critical_constraints_min_for_strong": 5,
+    "score_caps": {
+      "max_spec_score_if_no_gold_constraint_captured": 3,
+      "max_spec_score_if_forbidden_assumption_introduced": 5,
+      "max_worker_score_if_missing_info_empty_under_weak_spec": 6
+    },
+    "positive_signals": [
+      "Planner states concrete constraints rather than delegating them vaguely.",
+      "Planner flags unresolved choices and unsafe/destructive operations.",
+      "Worker preserves the planner intent while identifying missing implementation details."
+    ],
+    "negative_signals": [
+      "Planner introduces a convenient but wrong default.",
+      "Worker treats an underspecified handoff as complete.",
+      "Worker first actions target files or schemas not grounded in the planner spec."
+    ]
+  },
+  "episode_gold_extras": {},
+  "expected_v1_pitfalls": [
+    "Omit or blur critical constraint: 健康判定必须是 patient-level：该 patient 所有 Finding Labels 都为 'No Finding'",
+    "Omit or blur critical constraint: 不允许只看单行 'No Finding' 就 copy 该图像（会把混合患者的健康片段误纳入）",
+    "Omit or blur critical constraint: Step 1 是 copy（保留原图），Step 2 是 move（从 healthy/ 移到 healthy_clean/）"
+  ],
+  "decoys": [
+    "Worker may fill in a plausible implementation default that the planner did not actually specify.",
+    "Worker may treat a visible path or schema summary as complete when it is only partial."
+  ],
+  "forbidden_assumptions": [
+    "Do not infer hidden file naming, merge semantics, resume markers, or destructive write policy unless the planner spec states them."
+  ],
+  "planner_response_text": "# Implementation Plan for Extracting Healthy Chest X-Ray Samples\n\n## Observed Facts\n- Dataset: NIH ChestX-ray14\n- Metadata file: `<dataset_root>/Data_Entry_2017.csv`\n- Image directory: `<dataset_root>/images/`\n- Output directories: `<output_root>/healthy/` and `<output_root>/healthy_clean/`\n- Target: Extract images labeled as \"healthy\" patients\n- Process involves two steps:\n  1. Copy healthy patient images to `<output_root>/healthy/`\n  2. Move single-scanned healthy patient images to `<output_root>/healthy_clean/`\n\n## Assumptions\n- The CSV file contains columns for patient IDs and labels\n- Labels indicating \"healthy\" status are clearly marked (e.g., \"No Finding\")\n- Each row in the CSV corresponds to one image entry\n- Patient ID column exists and uniquely identifies patients\n- Image filenames match the pattern used in the dataset\n- The `healthy_clean` subset requires filtering for patients with exactly one scan\n\n## Risks\n- Incorrect identification of \"healthy\" patients due to ambiguous label formats\n- Overwriting existing files in output directories without confirmation\n- Misinterpretation of multi-scan vs. single-scan patient data\n- Failure to validate that all required directories exist before operation\n- Potential performance issues if processing large numbers of images\n\n## Open Questions\n- What specific label(s) indicate \"healthy\" status in the CSV?\n- How is the patient ID field named in the CSV?\n- Are there any special characters or encoding issues in the CSV that might affect parsing?\n- Should the worker verify that the source image files actually exist before attempting operations?\n\n## First Actions for Worker\n1. Examine the structure of `<dataset_root>/Data_Entry_2017.csv` to identify relevant columns\n2. Identify which column contains patient IDs and which contains labels\n3. Determine how to recognize \"healthy\" cases based on label values\n4. Create necessary output directories if they don't already exist\n5. Validate that image files referenced in the CSV actually exist in the source directory",
+  "worker_response_text": "{\n  \"understood_goal\": \"Extract healthy chest X-ray samples from the NIH ChestX-ray14 dataset by copying images labeled as 'healthy' to one directory and single-scanned healthy images to another directory.\",\n  \"constraints_to_follow\": [\n    \"The CSV metadata file contains columns for patient IDs and labels.\",\n    \"Labels indicating 'healthy' status must be clearly identified (e.g., 'No Finding').\",\n    \"Each row in the CSV corresponds to one image entry.\",\n    \"Patient ID column uniquely identifies patients.\",\n    \"Image filenames match the pattern used in the dataset.\",\n    \"The 'healthy_clean' subset requires filtering for patients with exactly one scan.\",\n    \"Output directories must be created if they do not exist.\",\n    \"Source image files must be validated for existence before operations.\"\n  ],\n  \"information_still_missing\": [\n    \"What specific label(s) indicate 'healthy' status in the CSV?\",\n    \"How is the patient ID field named in the CSV?\",\n    \"Are there any special characters or encoding issues in the CSV that might affect parsing?\",\n    \"Should the worker verify that the source image files actually exist before attempting operations?\"\n  ],\n  \"first_3_concrete_actions\": [\n    \"Examine the structure of <dataset_root>/Data_Entry_2017.csv to identify relevant columns such as patient ID and label fields.\",\n    \"Determine how to recognize 'healthy' cases based on label values by inspecting sample rows in the CSV.\",\n    \"Create necessary output directories (<output_root>/healthy/ and <output_root>/healthy_clean/) if they don't already exist.\"\n  ]\n}",
+  "worker_response_json": {
+    "understood_goal": "Extract healthy chest X-ray samples from the NIH ChestX-ray14 dataset by copying images labeled as 'healthy' to one directory and single-scanned healthy images to another directory.",
+    "constraints_to_follow": [
+      "The CSV metadata file contains columns for patient IDs and labels.",
+      "Labels indicating 'healthy' status must be clearly identified (e.g., 'No Finding').",
+      "Each row in the CSV corresponds to one image entry.",
+      "Patient ID column uniquely identifies patients.",
+      "Image filenames match the pattern used in the dataset.",
+      "The 'healthy_clean' subset requires filtering for patients with exactly one scan.",
+      "Output directories must be created if they do not exist.",
+      "Source image files must be validated for existence before operations."
+    ],
+    "information_still_missing": [
+      "What specific label(s) indicate 'healthy' status in the CSV?",
+      "How is the patient ID field named in the CSV?",
+      "Are there any special characters or encoding issues in the CSV that might affect parsing?",
+      "Should the worker verify that the source image files actually exist before attempting operations?"
+    ],
+    "first_3_concrete_actions": [
+      "Examine the structure of <dataset_root>/Data_Entry_2017.csv to identify relevant columns such as patient ID and label fields.",
+      "Determine how to recognize 'healthy' cases based on label values by inspecting sample rows in the CSV.",
+      "Create necessary output directories (<output_root>/healthy/ and <output_root>/healthy_clean/) if they don't already exist."
+    ]
+  },
+  "deterministic_contract_checks": {
+    "planner_non_empty": true,
+    "planner_has_json_tail": false,
+    "worker_json_parse_ok": true,
+    "worker_required_fields_present": true,
+    "violations": [
+      "planner_json_tail_missing_or_invalid"
+    ]
+  },
+  "judge_instructions": [
+    "Evaluate information flow, not whether final code was produced.",
+    "Planner constraint coverage must be judged against gold_constraints that are reasonably inferable from the visible request; do not require impossible hidden details unless the episode rubric marks them critical.",
+    "Penalize planner false confidence when it gives worker a concrete wrong default instead of flagging a missing detail.",
+    "Reward worker output when it correctly flags missing information caused by a weak planner spec.",
+    "Score each dimension 0-2 and total to 0-10.",
+    "Return strict JSON only."
+  ],
+  "output_schema": {
+    "planner_constraint_coverage_score": "0-2",
+    "planner_risk_flagging_score": "0-2",
+    "worker_goal_alignment_score": "0-2",
+    "worker_missing_info_score": "0-2",
+    "worker_first_action_precision_score": "0-2",
+    "spec_score": "0-10",
+    "worker_score": "0-10",
+    "final_verdict": "spec_strong | spec_acceptable | spec_weak | spec_unsafe",
+    "covered_gold_constraints": [
+      "gold constraints captured by planner or worker"
+    ],
+    "missed_gold_constraints": [
+      "important gold constraints omitted or mishandled"
+    ],
+    "forbidden_assumptions_made": [
+      "wrong assumptions made by planner or worker"
+    ],
+    "separation_notes": "why this cell should or should not separate models",
+    "concise_rationale": "short evidence-based explanation"
+  }
+}

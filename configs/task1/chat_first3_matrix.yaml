@@ -1,0 +1,17 @@
+tasks:
+  - data/t1_tasks/cxr14_subset_extraction.yaml
+  - data/t1_tasks/heart_mask_merge_cleanup.yaml
+  - data/t1_tasks/totalseg_mask_quarantine.yaml
+
+runners:
+  - label: haiku_4_5
+    provider: bedrock
+    model_id: us.anthropic.claude-haiku-4-5-20251001-v1:0
+
+judge_model: gpt-5.4-mini
+condition: A0_interactive
+runner_visibility: benchmark
+fail_on_leak: true
+max_runner_tokens: 1200
+max_judge_tokens: 1800
+out_dir: run_result/Chat_first3_V1/output

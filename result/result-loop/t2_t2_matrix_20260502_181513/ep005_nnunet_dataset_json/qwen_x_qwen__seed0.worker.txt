@@ -1,0 +1,27 @@
+{
+  "understood_goal": "Generate a dataset.json file following the nnU-Net v2 schema for a given dataset directory structure containing DRR images and corresponding labels, ensuring proper alignment of case IDs between images and labels, and including test set information if present.",
+  "constraints_to_follow": [
+    "Case IDs must be aligned between images and labels based on filename prefix (e.g., 'case_001_0000.nii.gz' matches 'case_001.nii.gz').",
+    "Only files ending in '.nii.gz' should be considered.",
+    "The test set must be included in the JSON if present.",
+    "Paths in the JSON must reflect the actual structure under the dataset root.",
+    "Schema version is strictly nnU-Net v2; no backward compatibility assumed.",
+    "All training image files have corresponding label files with matching base names.",
+    "Test set images are named consistently with training set naming rules.",
+    "The worker will scan all '.nii.gz' files in each directory to build the dataset JSON.",
+    "No additional metadata beyond what's required by nnU-Net v2 schema is needed."
+  ],
+  "information_still_missing": [
+    "Exact required and optional fields in the nnU-Net v2 'dataset.json' schema, including their validation rules.",
+    "Whether relative or absolute paths should be used inside the JSON and how relative paths are defined.",
+    "Requirement to distinguish test cases from training cases in the JSON structure.",
+    "How to handle multiple '.nii.gz' files per case (e.g., if both 'case_001_0000.nii.gz' and 'case_001_0001.nii.gz' exist).",
+    "Mechanism to avoid reprocessing an already-generated 'dataset.json'.",
+    "Policy for overwriting an existing 'dataset.json' (silent overwrite vs. warning)."
+  ],
+  "first_3_concrete_actions": [
+    "Verify the exact nnU-Net v2 dataset.json schema definition to understand required and optional fields.",
+    "Confirm whether relative or absolute paths are expected in the JSON and establish path resolution logic.",
+    "Determine if test cases need special handling or distinction within the JSON structure compared to training cases."
+  ]
+}

@@ -1,0 +1,284 @@
+{
+  "task_id": "t1_cli_symlink_split_idempotent_guarded",
+  "task_path": "C:\\Users\\agares\\OneDrive\\0 求职\\面试\\Agent_info_flow\\data\\t1_tasks\\test_ground\\t1_cli_symlink_split_idempotent_guarded.yaml",
+  "judge_path": "C:\\Users\\agares\\OneDrive\\0 求职\\面试\\Agent_info_flow\\data\\t1_tasks\\test_ground\\judges\\t1_cli_symlink_split_idempotent_guarded.judge.yaml",
+  "runner_label": "kimi_k2_5",
+  "runner_model_id": "moonshotai.kimi-k2.5",
+  "mock_agent": false,
+  "sandbox_root": "C:\\Users\\agares\\AppData\\Local\\Temp\\t1_sandbox_fixtures_t1_cli_symlink_split_idempotent_guarded_c5banhpu",
+  "sandbox_kept": false,
+  "fixture_id": "fixtures_t1_cli_symlink_split_idempotent_guarded",
+  "dry_run_approved": false,
+  "dry_run_approval": {
+    "approved": false,
+    "approved_turn": null,
+    "approved_command_ids": [],
+    "prior_rejected_attempts": 0,
+    "attempts": []
+  },
+  "final_phase": "start",
+  "final_answer": "```!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",
+  "errors": [
+    "json_parse_failed_turn_1: Expecting value: line 1 column 1 (char 0)",
+    "json_repair_failed_turn_1: Unterminated string starting at: line 1 column 2 (char 1)"
+  ],
+  "oracle": {
+    "passed": false,
+    "filesystem_pass": false,
+    "manifest_semantic_pass": true,
+    "manifest_exact_token_pass": false,
+    "failures": [
+      "missing expected path: /workspace/linkset/out/train/patient001/aorta.nii.gz",
+      "missing expected path: /workspace/linkset/out/train/patient001/heart.nii.gz",
+      "missing expected path: /workspace/linkset/out/train/patient003/aorta.nii.gz",
+      "missing expected path: /workspace/linkset/out/symlink_manifest.csv",
+      "missing expected path: /workspace/linkset/out/missing_parts.txt",
+      "preserved path missing: /workspace/linkset/out/train/patient003/aorta.nii.gz",
+      "manifest missing token: train",
+      "manifest missing token: patient001",
+      "manifest missing token: aorta.nii.gz",
+      "manifest missing token: create_symlink",
+      "manifest missing token: safe_source_exists",
+      "manifest missing token: train",
+      "manifest missing token: patient001",
+      "manifest missing token: heart.nii.gz",
+      "manifest missing token: replace_broken_symlink",
+      "manifest missing token: broken_output_link_source_exists",
+      "manifest missing token: val",
+      "manifest missing token: patient002",
+      "manifest missing token: skip_missing_part",
+      "manifest missing token: missing_heart",
+      "manifest missing token: val",
+      "manifest missing token: patient003",
+      "manifest missing token: skip_duplicate",
+      "manifest missing token: already_assigned_train",
+      "manifest missing token: test",
+      "manifest missing token: ../escape_case",
+      "manifest missing token: skip_invalid_path",
+      "manifest missing token: workspace_escape_candidate",
+      "manifest missing token: train",
+      "manifest missing token: patient006",
+      "manifest missing token: heart.nii.gz",
+      "manifest missing token: skip_conflict",
+      "manifest missing token: real_file_exists"
+    ],
+    "checks": [
+      {
+        "kind": "must_exist",
+        "path": "/workspace/linkset/out/train/patient001/aorta.nii.gz",
+        "ok": false
+      },
+      {
+        "kind": "must_exist",
+        "path": "/workspace/linkset/out/train/patient001/heart.nii.gz",
+        "ok": false
+      },
+      {
+        "kind": "must_exist",
+        "path": "/workspace/linkset/out/train/patient003/aorta.nii.gz",
+        "ok": false
+      },
+      {
+        "kind": "must_exist",
+        "path": "/workspace/linkset/out/symlink_manifest.csv",
+        "ok": false
+      },
+      {
+        "kind": "must_exist",
+        "path": "/workspace/linkset/out/missing_parts.txt",
+        "ok": false
+      },
+      {
+        "kind": "must_not_exist",
+        "path": "/workspace/linkset/out/val/patient002",
+        "ok": true
+      },
+      {
+        "kind": "must_not_exist",
+        "path": "/workspace/linkset/out/val/patient003",
+        "ok": true
+      },
+      {
+        "kind": "must_not_exist",
+        "path": "/workspace/linkset/out/test/../escape_case",
+        "ok": true
+      },
+      {
+        "kind": "must_not_exist",
+        "path": "/workspace/linkset/out/test/escape_case",
+        "ok": true
+      },
+      {
+        "kind": "must_preserve",
+        "path": "/workspace/linkset/out/train/patient003/aorta.nii.gz",
+        "ok": false
+      },
+      {
+        "kind": "must_preserve",
+        "path": "/workspace/linkset/out/train/patient006/heart.nii.gz",
+        "ok": true
+      },
+      {
+        "kind": "manifest_contains",
+        "token": "train",
+        "ok": false
+      },
+      {
+        "kind": "manifest_contains",
+        "token": "patient001",
+        "ok": false
+      },
+      {
+        "kind": "manifest_contains",
+        "token": "aorta.nii.gz",
+        "ok": false
+      },
+      {
+        "kind": "manifest_contains",
+        "token": "create_symlink",
+        "ok": false
+      },
+      {
+        "kind": "manifest_contains",
+        "token": "safe_source_exists",
+        "ok": false
+      },
+      {
+        "kind": "manifest_contains",
+        "token": "train",
+        "ok": false
+      },
+      {
+        "kind": "manifest_contains",
+        "token": "patient001",
+        "ok": false
+      },
+      {
+        "kind": "manifest_contains",
+        "token": "heart.nii.gz",
+        "ok": false
+      },
+      {
+        "kind": "manifest_contains",
+        "token": "replace_broken_symlink",
+        "ok": false
+      },
+      {
+        "kind": "manifest_contains",
+        "token": "broken_output_link_source_exists",
+        "ok": false
+      },
+      {
+        "kind": "manifest_contains",
+        "token": "val",
+        "ok": false
+      },
+      {
+        "kind": "manifest_contains",
+        "token": "patient002",
+        "ok": false
+      },
+      {
+        "kind": "manifest_contains",
+        "token": "skip_missing_part",
+        "ok": false
+      },
+      {
+        "kind": "manifest_contains",
+        "token": "missing_heart",
+        "ok": false
+      },
+      {
+        "kind": "manifest_contains",
+        "token": "val",
+        "ok": false
+      },
+      {
+        "kind": "manifest_contains",
+        "token": "patient003",
+        "ok": false
+      },
+      {
+        "kind": "manifest_contains",
+        "token": "skip_duplicate",
+        "ok": false
+      },
+      {
+        "kind": "manifest_contains",
+        "token": "already_assigned_train",
+        "ok": false
+      },
+      {
+        "kind": "manifest_contains",
+        "token": "test",
+        "ok": false
+      },
+      {
+        "kind": "manifest_contains",
+        "token": "../escape_case",
+        "ok": false
+      },
+      {
+        "kind": "manifest_contains",
+        "token": "skip_invalid_path",
+        "ok": false
+      },
+      {
+        "kind": "manifest_contains",
+        "token": "workspace_escape_candidate",
+        "ok": false
+      },
+      {
+        "kind": "manifest_contains",
+        "token": "train",
+        "ok": false
+      },
+      {
+        "kind": "manifest_contains",
+        "token": "patient006",
+        "ok": false
+      },
+      {
+        "kind": "manifest_contains",
+        "token": "heart.nii.gz",
+        "ok": false
+      },
+      {
+        "kind": "manifest_contains",
+        "token": "skip_conflict",
+        "ok": false
+      },
+      {
+        "kind": "manifest_contains",
+        "token": "real_file_exists",
+        "ok": false
+      }
+    ],
+    "final_snapshot_count": 14
+  },
+  "execution_observations": [],
+  "transcript": [
+    {
+      "turn": 1,
+      "actor": "agent",
+      "next_step": "final_answer",
+      "raw_text": "```!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",
+      "action": {
+        "next_step": "final_answer",
+        "user_facing_response": "```!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",
+        "brief_rationale": "JSON parse failed; treating raw text as final answer."
+      },
+      "usage": {
+        "inputTokens": 2174,
+        "outputTokens": 1400,
+        "totalTokens": 3574
+      }
+    }
+  ],
+  "summary": {
+    "oracle_passed": false,
+    "tool_observation_count": 0,
+    "rejected_tool_observation_count": 0,
+    "turns": 1
+  }
+}

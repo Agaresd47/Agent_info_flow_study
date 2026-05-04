@@ -1,0 +1,24 @@
+{
+  "condition": "B0_guardrailed",
+  "seed": 1,
+  "episode_id": "ep005_nnunet_dataset_json",
+  "planner_spec": "### Implementation Plan\n\n#### Observed Facts:\n- The dataset is structured according to nnU-Net v2 conventions.\n- Dataset ID: `Dataset001_LungLobeRight`\n- Directory structure includes:\n  - `<dataset_root>/Dataset001_LungLobeRight/imagesTr/`\n  - `<dataset_root>/Dataset001_LungLobeRight/labelsTr/`\n  - `<dataset_root>/Dataset001_LungLobeRight/imagesTs/`\n- The task is to generate a `dataset.json` file.\n- Foreground class: `lung_lower_lobe_right`\n- Modality: `DRR`\n\n#### Assumptions:\n- The directory structure is complete and consistent with nnU-Net v2 expectations.\n- All training images and labels are located under `imagesTr/` and `labelsTr/`, respectively.\n- Test images are located under `imagesTs/`.\n- The modality key in `dataset.json` should be named `\"modality\"` and will contain a dictionary mapping modality names to their descriptions.\n- The foreground class name (`lung_lower_lobe_right`) is used directly as the key in the `labels` dictionary.\n\n#### Constraints:\n- The script must not modify existing files unless explicitly instructed.\n- The output `dataset.json` must be written to the root of the dataset folder.\n- The script must not assume any specific naming convention beyond what's provided (e.g., image/label suffixes).\n- No overwrite behavior is defined; if `dataset.json` already exists, the script should either fail or not proceed without confirmation.\n- The schema version of `dataset.json` is assumed to match nnU-Net v2 requirements.\n\n#### Open Questions:\n- Should the script check for the existence of `imagesTr`, `labelsTr`, and `imagesTs` directories before proceeding?\n- Is there a specific naming convention for image and label files (e.g., `.png`, `.nii.gz`)?\n- What is the expected format for the `description` field in `dataset.json`?\n- Are there any additional metadata fields required in `dataset.json` beyond those specified?\n- How should the script handle cases where some files are missing or corrupted?\n\n---\n\n```json\n{\n  \"assumptions\": [\n    \"The directory structure is complete and consistent with nnU-Net v2 expectations.\",\n    \"All training images and labels are located under imagesTr/ and labelsTr/, respectively.\",\n    \"Test images are located under imagesTs/.\",\n    \"The modality key in dataset.json should be named \\\"modality\\\" and will contain a dictionary mapping modality names to their descriptions.\",\n    \"The foreground class name (lung_lower_lobe_right) is used directly as the key in the labels dictionary.\"\n  ],\n  \"risks\": [\n    \"Incorrectly generated dataset.json may cause pipeline failures during training or inference.\",\n    \"Overwriting an existing dataset.json without confirmation could lead to loss of custom configurations.\",\n    \"Missing or malformed image/label files might result in incomplete or invalid JSON output.\"\n  ],\n  \"open_questions\": [\n    \"Should the script check for the existence of imagesTr, labelsTr, and imagesTs directories before proceeding?\",\n    \"Is there a specific naming convention for image and label files (e.g., .png, .nii.gz)?\",\n    \"What is the expected format for the description field in dataset.json?\",\n    \"Are there any additional metadata fields required in dataset.json beyond those specified?\",\n    \"How should the script handle cases where some files are missing or corrupted?\"\n  ]\n}\n```",
+  "task": "Interpret the planner spec. Do not use outside knowledge except general engineering caution.",
+  "output_schema": {
+    "understood_goal": "string",
+    "constraints_to_follow": [
+      "specific constraints stated or strongly implied by the planner spec"
+    ],
+    "information_still_missing": [
+      "missing information that blocks safe implementation"
+    ],
+    "first_3_concrete_actions": [
+      "the first three actions you would take before writing final code"
+    ]
+  },
+  "instructions": [
+    "Return strict JSON only.",
+    "If the planner spec omits something important, put it in information_still_missing instead of inventing it.",
+    "Do not assume hidden dataset schema, file naming, algorithm details, or safety policy."
+  ]
+}

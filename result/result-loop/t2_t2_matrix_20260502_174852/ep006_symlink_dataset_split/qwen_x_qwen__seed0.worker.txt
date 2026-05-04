@@ -1,0 +1,22 @@
+{
+  "understood_goal": "Create symbolic links for a medical imaging dataset following nnU-Net directory conventions, splitting the data into train/test/validation sets with an 8:1:1 ratio based on a fixed seed. The input consists of organ-specific mask files and DRR images organized in specific directory structures, with a mapping file defining which parts belong to which organs.",
+  "constraints_to_follow": [
+    "Preserve original file integrity; do not modify source files.",
+    "Splitting must be deterministic based on the provided seed (0).",
+    "Symbolic link creation must be safe and avoid overwriting existing links.",
+    "Directory structures must conform exactly to nnU-Net expectations after linking.",
+    "Mapping from organ → part must support many-to-many relationships as defined in organ_list.txt.",
+    "All symbolic links must be created using standard OS tools (e.g., ln -s)."
+  ],
+  "information_still_missing": [
+    "Exact format of the organ_list.txt file (e.g., whether it's one organ per line with space-separated parts or another format).",
+    "Whether validation is required to ensure that every patient ID in CT_no_bed/ has corresponding entries in all organ directories.",
+    "Whether sanitization is needed for special characters or encoding issues in patient IDs or part names.",
+    "How to handle cases where a patient lacks certain organs or parts (e.g., skip, error, or create placeholder links)."
+  ],
+  "first_3_concrete_actions": [
+    "Parse the organ_list.txt file to understand its exact format and extract organ-part mappings.",
+    "Validate that patient IDs in CT_no_bed/ match those found in all organ directories to ensure consistency.",
+    "Determine how to safely create symbolic links while avoiding overwrites and ensuring correct nnU-Net directory structure."
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "understood_goal": "Extract healthy chest X-ray samples from the NIH ChestX-ray14 dataset by first identifying all healthy patients and copying their images, then filtering for patients with only one scan and moving those images to a clean directory.",
+  "constraints_to_follow": [
+    "Use pandas to read the CSV file at `<dataset_root>/Data_Entry_2017.csv`",
+    "Copy images to `<output_root>/healthy/` during Stage 1",
+    "Move images to `<output_root>/healthy_clean/` during Stage 2",
+    "Preserve original filenames or document any renaming logic",
+    "Handle potential issues like missing images or ambiguous mappings carefully",
+    "Ensure output directories are either created safely or already exist",
+    "Log source-to-destination mappings for traceability"
+  ],
+  "information_still_missing": [
+    "The exact column name and value(s) in the CSV that indicate a 'healthy' patient status",
+    "How to determine which records represent a 'single scan' per patient",
+    "The mapping rule between patient identifiers in the CSV and image filenames in the image directory",
+    "Whether output directories should be created fresh or if they're expected to pre-exist",
+    "How to handle cases where a CSV record references an image that does not exist on disk",
+    "The level of logging/reporting detail required (e.g., counts, lists of files)"
+  ],
+  "first_3_concrete_actions": [
+    "Inspect the structure of the input CSV file (`<dataset_root>/Data_Entry_2017.csv`) to identify columns related to patient health status and scan information",
+    "Examine sample image filenames in `<dataset_root>/image/` to understand how they relate to patient identifiers in the CSV",
+    "Verify whether the output directories `<output_root>/healthy/` and `<output_root>/healthy_clean/` exist and decide on a strategy for handling them (create, overwrite, or error)"
+  ]
+}

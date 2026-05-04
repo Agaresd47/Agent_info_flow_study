@@ -1,0 +1,31 @@
+{
+  "understood_goal": "To build a multi-patient data preprocessing pipeline that groups TotalSeg masks by anatomical structure class, generates intensity-filled masks from CT volumes, produces composite foreground masks and soft-tissue fallback outputs, and supports resumption after failure while optimizing for throughput across multiple machines.",
+  "constraints_to_follow": [
+    "All CT and mask files are NIfTI (.nii.gz) with matching spatial geometry",
+    "TotalSeg output follows a consistent naming convention in <patient_id>_total/ directories",
+    "Structure class grouping is deterministic from name prefixes (e.g., rib_left_*, rib_right_*)",
+    "Intensity fill means copying CT voxel values where mask is nonzero",
+    "Soft tissue voxels are those outside all merged masks",
+    "Output files are NIfTI (.nii.gz) with same geometry as input CT",
+    "Patient IDs are consistently formatted and extractable from directory names"
+  ],
+  "information_still_missing": [
+    "The exact mapping from individual TotalSeg mask names to structure classes",
+    "Whether mask grouping is hardcoded, config-driven, or pattern-based",
+    "What HU value should be assigned to background (soft-tissue) voxels",
+    "What marks a patient as successfully processed (file presence, metadata, timestamp)",
+    "If a patient is partially processed, which outputs should be preserved vs. re-run",
+    "Is <output_root> on shared storage or local per-machine",
+    "How should concurrent writes from multiple machines be coordinated",
+    "What are the exact output filenames for merged masks, intensity masks, foreground, and soft-tissue outputs",
+    "Should all outputs go in <output_root>/<patient_id>/ or in separate subdirectories",
+    "How is the patient list enumerated (directory scan, config, database)",
+    "What should happen if CT and mask geometries don't match",
+    "What should happen if a patient has no masks or no CT file"
+  ],
+  "first_3_concrete_actions": [
+    "Clarify the structure class mapping for TotalSeg mask names (e.g., via a configuration file or hardcoded list)",
+    "Define a completion marker for resumption (e.g., create a .done file upon successful completion)",
+    "Specify the HU value to assign to background voxels in the soft-tissue fallback output"
+  ]
+}

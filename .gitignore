@@ -19,6 +19,10 @@ t1_llm_judge_matrix_*.json
 /run_t1_llm_judge_matrix.py
 /t1_pilot_*.yaml
 /fixtures/t1_workspaces/
+!/fixtures/t1_workspaces/
+!/fixtures/t1_workspaces/t1_pilot_cxr14_subset_extraction.yaml
+!/fixtures/t1_workspaces/t1_pilot_heart_mask_merge_cleanup.yaml
+!/fixtures/t1_workspaces/t1_pilot_totalseg_mask_quarantine.yaml
 code_source/
 .claude/
 data/t1_tasks/test_ground/

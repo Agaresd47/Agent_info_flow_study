@@ -1,0 +1,34 @@
+{
+  "understood_goal": "Process medical imaging data for each patient by combining TotalSeg structure masks into categories, filling masks with CT intensity values, and generating derived outputs like soft-tissue CT images. The work supports resumable batch processing with a focus on speed.",
+  "constraints_to_follow": [
+    "One CT file per patient exists at <dataset_root>/ct/<patient_id>.nii.gz and is readable.",
+    "All mask files for a patient are located in <dataset_root>/mask/<patient_id>_total/ and are co-registered to the CT image.",
+    "Mask combination uses binary union logic (any voxel masked in any source structure → 1 in combined mask).",
+    "Unmasked voxels in real-intensity masks are filled with a specified value (currently assumed to be 0).",
+    "Soft-tissue CT replaces foreground voxels with a fixed HU value (assumed to be 40), while preserving background from the original CT.",
+    "Completion tracking is done via a sentinel file in <output_root>/<patient_id>/ directory.",
+    "If a completion marker exists, the patient is skipped; otherwise, all outputs are recomputed.",
+    "Processing is per-patient with no cross-patient dependencies.",
+    "Outputs may overwrite existing files without backup.",
+    "No validation is performed on mask-CT spatial alignment."
+  ],
+  "information_still_missing": [
+    "Exact filename pattern for individual structure masks (e.g., <structure_name>.nii.gz or <patient_id>_<structure_name>.nii.gz).",
+    "Mapping from individual structure names to category groups (hardcoded list, config file, regex?).",
+    "Whether mask combination uses union, intersection, or priority-based selection for overlapping voxels.",
+    "Fill value for unmasked voxels in real-intensity masks (0, -1024, NaN, or background CT value?).",
+    "Target HU value for soft-tissue replacement in soft-tissue CT output.",
+    "Handling of background voxels (not in any structure) in soft-tissue CT (preserve original CT, set to air HU, etc.).",
+    "Format and location of the completion marker (file name, content, metadata).",
+    "Behavior when a structure file is missing (fail, skip, default mask?).",
+    "Atomicity of output writing (all-or-nothing or incremental?).",
+    "Predefined list of expected categories or inference method from filenames.",
+    "Concurrency model for multi-patient processing (threading, multiprocessing, distributed?).",
+    "Memory or time limits per patient."
+  ],
+  "first_3_concrete_actions": [
+    "Validate existence and readability of the CT file at <dataset_root>/ct/<patient_id>.nii.gz.",
+    "List all mask files in <dataset_root>/mask/<patient_id>_total/ to confirm availability and extract structure names.",
+    "Check for presence of a completion marker in <output_root>/<patient_id>/ to determine whether to skip or process the patient."
+  ]
+}

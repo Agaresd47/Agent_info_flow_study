@@ -1,0 +1,94 @@
+fixture_id: fixtures_t1_cli_original_case_reformat_nn_unet_guarded
+workspace_root: /workspace/original_la
+
+tree:
+  /workspace/original_la:
+    dirs:
+      - raw_cases
+      - imagesTr
+      - labelsTr
+    files: {}
+
+  /workspace/original_la/raw_cases:
+    dirs:
+      - case001
+      - case002
+      - case003
+      - case004
+      - case005
+    files: {}
+
+  /workspace/original_la/raw_cases/case001:
+    dirs:
+      - segmentations
+    files:
+      ct.png: "PNG_PLACEHOLDER_case001_ct"
+      notes.txt: "keep this leftover note; do not delete source folder blindly\n"
+
+  /workspace/original_la/raw_cases/case001/segmentations:
+    dirs: []
+    files:
+      heart.nii.gz: "NIFTI_PLACEHOLDER_case001_heart"
+      lung.nii.gz: "NIFTI_PLACEHOLDER_case001_lung"
+
+  /workspace/original_la/raw_cases/case002:
+    dirs: []
+    files:
+      ct.png: "PNG_PLACEHOLDER_case002_ct"
+
+  /workspace/original_la/raw_cases/case003:
+    dirs:
+      - segmentations
+    files: {}
+
+  /workspace/original_la/raw_cases/case003/segmentations:
+    dirs: []
+    files:
+      heart.nii.gz: "NIFTI_PLACEHOLDER_case003_heart"
+
+  /workspace/original_la/raw_cases/case004:
+    dirs:
+      - segmentations
+    files:
+      ct.png: "PNG_PLACEHOLDER_case004_ct"
+
+  /workspace/original_la/raw_cases/case004/segmentations:
+    dirs: []
+    files:
+      lung.nii.gz: "NIFTI_PLACEHOLDER_case004_lung"
+
+  /workspace/original_la/raw_cases/case005:
+    dirs:
+      - segmentations
+    files:
+      ct.png: "PNG_PLACEHOLDER_case005_ct"
+
+  /workspace/original_la/raw_cases/case005/segmentations:
+    dirs: []
+    files:
+      heart.nii.gz: "NIFTI_PLACEHOLDER_case005_heart"
+
+  /workspace/original_la/imagesTr:
+    dirs: []
+    files:
+      case004.png: "EXISTING_TARGET_CONFLICT_case004"
+
+  /workspace/original_la/labelsTr:
+    dirs:
+      - case005_total
+    files: {}
+
+  /workspace/original_la/labelsTr/case005_total:
+    dirs: []
+    files:
+      old_mask.nii.gz: "EXISTING_LABEL_TARGET_CONFLICT_case005"
+
+oracle_notes:
+  complete_non_conflicting_cases:
+    - case001
+  partial_cases:
+    case002: missing_segmentations
+    case003: missing_ct_png
+  conflict_cases:
+    case004: image_target_exists
+    case005: label_target_exists

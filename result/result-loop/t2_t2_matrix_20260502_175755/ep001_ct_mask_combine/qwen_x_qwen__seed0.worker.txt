@@ -1,0 +1,27 @@
+{
+  "understood_goal": "Combine multiple mask files representing similar anatomical structures (e.g., left and right ribs) into single binary masks, then fill these masks with corresponding CT intensities to create 'real-intensity masks'. Additionally, generate a foreground mask combining all structures and a background ('soft tissue') CT output.",
+  "constraints_to_follow": [
+    "Support resuming from previous runs if interrupted.",
+    "Avoid overwriting existing outputs unless explicitly instructed.",
+    "Handle large volumes of patients efficiently.",
+    "Ensure correctness of merging multiple masks per structure type.",
+    "Preserve original CT intensity values when filling the real-intensity masks.",
+    "All input .nii.gz files follow standard NIfTI format.",
+    "CT image and mask images have matching spatial dimensions and affine transformations.",
+    "Mask filenames do not contain special characters that could interfere with filesystem operations."
+  ],
+  "information_still_missing": [
+    "Exact naming convention for different structures (e.g., how left/right pairs are identified).",
+    "Reserved or special filenames in mask directories that should be ignored.",
+    "Defined list of structure types to combine or inference logic from available files.",
+    "Whether to check for alignment between CT and mask images before processing.",
+    "Mechanism to determine if a run has already completed for a given patient.",
+    "Validation process for ensuring all expected inputs exist before starting.",
+    "Expected behavior if a mask file cannot be read or processed due to corruption."
+  ],
+  "first_3_concrete_actions": [
+    "Identify the structure grouping logic by analyzing sample mask filenames to understand how to pair left/right structures.",
+    "Implement a mechanism to detect and skip already processed patients to support resuming from interruption.",
+    "Create a robust error handling framework to manage corrupted or unreadable mask files without crashing the entire pipeline."
+  ]
+}

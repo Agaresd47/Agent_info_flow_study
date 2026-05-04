@@ -1,0 +1,36 @@
+{
+  "planner_constraint_coverage_score": 1,
+  "planner_risk_flagging_score": 2,
+  "worker_goal_alignment_score": 2,
+  "worker_missing_info_score": 2,
+  "worker_first_action_precision_score": 1,
+  "spec_score": 5,
+  "worker_score": 8,
+  "final_verdict": "spec_weak",
+  "covered_gold_constraints": [
+    "CT input path under <dataset_root>/ct/<patient_id>.nii.gz",
+    "mask input directory under <dataset_root>/mask/<patient_id>_total/",
+    "patient-level output directory under <output_root>/<patient_id>/",
+    "support for resumption after failure",
+    "multi-patient / parallel throughput expectation",
+    "preserve NIfTI affine/header metadata",
+    "need to group multiple masks into combined structure outputs",
+    "need to produce real-intensity masks and a soft-tissue fallback CT"
+  ],
+  "missed_gold_constraints": [
+    "np.maximum must be used for mask merging; planner did not state the merge operator",
+    "resume marker must be <output_root>/<patient_id>/.processing_done; planner did not specify this",
+    "structure selection must use regex patterns, not a hardcoded complete list",
+    "soft tissue output must fill masked regions with padding_value default 5",
+    "real-intensity mask must use -999.9 outside mask, not 0",
+    "affine/header must come from the first merged mask file",
+    "success should write .processing_done only after full completion"
+  ],
+  "forbidden_assumptions_made": [
+    "Worker assumed atomic writes for intermediate outputs, but the planner did not specify this.",
+    "Worker assumed input file integrity validation should be performed, which was not grounded in the planner spec.",
+    "Worker assumed a generic 'complete outputs' check for resumption instead of the required .processing_done marker."
+  ],
+  "separation_notes": "This episode separates models mainly on whether they preserve hidden but critical implementation constraints from a broad requirements summary. The worker correctly exposed missing details, but also filled gaps with plausible defaults that were not grounded in the planner spec.",
+  "concise_rationale": "The planner captured the overall task shape and the need for resumption/parallelism, but missed several critical hidden constraints: np.maximum merge semantics, .processing_done resume marker, regex-based selection, and exact fill values for outputs. The worker aligned with the high-level goal and clearly surfaced many unknowns, but also introduced unsupported assumptions such as atomic writes and generic output-based completion checks."
+}

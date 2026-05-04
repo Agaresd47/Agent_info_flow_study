@@ -1,0 +1,25 @@
+{
+  "understood_goal": "Generate a Python script that creates a `dataset.json` file for an nnU-Net v2 project using DRR images and labels for lung right lower lobe segmentation, following specific directory structure and configuration parameters.",
+  "constraints_to_follow": [
+    "Use the specified directory structure: `<dataset_root>/Dataset001_LungLobeRight/imagesTr/`, `<dataset_root>/Dataset001_LungLobeRight/labelsTr/`, and `<dataset_root>/Dataset001_LungLobeRight/imagesTs/`.",
+    "Set modality to \"DRR\", task name to \"Dataset001_LungLobeRight\", and label to \"lung_lower_lobe_right\".",
+    "Ensure all paths in the JSON are relative to the `Dataset001_LungLobeRight` folder.",
+    "Validate that each image in `imagesTr` has a corresponding label in `labelsTr` with matching base name.",
+    "Do not overwrite an existing `dataset.json` unless explicitly instructed.",
+    "Do not assume file extensions or schema details not explicitly stated in the prompt."
+  ],
+  "information_still_missing": [
+    "Exact nnU-Net v2 schema version for the `version` field in `dataset.json`.",
+    "Standard naming convention for the DRR channel in `channel_names` (e.g., \"0000\", \"image\", \"DRR\").",
+    "Integer ID for the \"lung_lower_lobe_right\" label (e.g., 1, 2, 0).",
+    "Whether the `test` list should include entries from `imagesTs`.",
+    "Exact file extension for DRR images (e.g., .png, .dcm, .nii.gz).",
+    "Whether the modality key in `modality` is a string \"0\" or the name \"DRR\".",
+    "Policy for handling existing `dataset.json` (overwrite vs. error)."
+  ],
+  "first_3_concrete_actions": [
+    "List the open questions identified in the spec to confirm understanding with the user.",
+    "Verify the directory structure and file presence in `imagesTr` and `labelsTr` to ensure alignment.",
+    "Construct a basic JSON template with placeholders for dynamic fields like `numTraining`, `training`, and `labels` to validate the structure before populating with actual data."
+  ]
+}

@@ -1,0 +1,75 @@
+fixture_id: fixtures_t1_cli_low_bad_slice_ct_mask_move
+workspace_root: /workspace/ct_pool
+
+entries:
+  - path: /workspace/ct_pool/vertebrae_Ares.txt
+    kind: file
+    content: |
+      # Folder | Percentage_Bad_Slices | Status
+      patient_001_total | 0.20 | OK
+      patient_002_total | 0.30 | OK
+      patient_003_total | 0.40 | OK
+      patient_004_total | 1.20 | OK
+      bad_line_without_delimiters
+      patient_005_total | 2.00 | OK
+      patient_006_total | 2.50 | OK
+      patient_007_total | N/A | ERROR
+      patient_008_total | 10.00 | OK
+  - path: /workspace/ct_pool/A2/CT_no_bed/patient_001.nii.gz
+    kind: file
+    content: "ct-patient-001"
+  - path: /workspace/ct_pool/A2/mask/patient_001_total/lung.nii.gz
+    kind: file
+    content: "mask-patient-001"
+  - path: /workspace/ct_pool/A2/CT_no_bed/patient_002.nii.gz
+    kind: file
+    content: "ct-patient-002"
+  - path: /workspace/ct_pool/A2/mask/patient_002_total/lung.nii.gz
+    kind: file
+    content: "mask-patient-002"
+  - path: /workspace/ct_pool/A2/mask/patient_003_total/lung.nii.gz
+    kind: file
+    content: "mask-patient-003-missing-ct"
+  - path: /workspace/ct_pool/A2/CT_no_bed/patient_004.nii.gz
+    kind: file
+    content: "ct-patient-004"
+  - path: /workspace/ct_pool/A2/mask/patient_004_total/lung.nii.gz
+    kind: file
+    content: "mask-patient-004"
+  - path: /workspace/ct_pool/A2/CT_no_bed/patient_005.nii.gz
+    kind: file
+    content: "ct-patient-005"
+  - path: /workspace/ct_pool/A2/mask/patient_005_total/lung.nii.gz
+    kind: file
+    content: "mask-patient-005"
+  - path: /workspace/ct_pool/A2/CT_no_bed/patient_006.nii.gz
+    kind: file
+    content: "ct-patient-006"
+  - path: /workspace/ct_pool/A2/mask/patient_006_total/lung.nii.gz
+    kind: file
+    content: "mask-patient-006"
+  - path: /workspace/ct_pool/A2_filtered/mask/patient_001_total/lung.nii.gz
+    kind: file
+    content: "preexisting-target-mask-conflict"
+  - path: /workspace/ct_pool/A2_filtered/CT_no_bed/patient_005.nii.gz
+    kind: file
+    content: "preexisting-target-ct-conflict"
+
+oracle_notes:
+  valid_numeric_rank_order:
+    - patient_001_total
+    - patient_002_total
+    - patient_003_total
+    - patient_004_total
+    - patient_005_total
+    - patient_006_total
+    - patient_008_total
+  ineligible_cases:
+    patient_001_total: target_mask_exists
+    patient_003_total: missing_ct
+    patient_005_total: target_ct_exists
+    patient_007_total: N_A_row
+  selected_after_backfill:
+    - patient_002_total
+    - patient_004_total
+    - patient_006_total

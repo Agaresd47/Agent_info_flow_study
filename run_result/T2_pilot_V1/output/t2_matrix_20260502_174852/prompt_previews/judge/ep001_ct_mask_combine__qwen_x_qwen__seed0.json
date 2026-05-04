@@ -1,0 +1,125 @@
+{
+  "episode_id": "ep001_ct_mask_combine",
+  "condition": "B0_guardrailed",
+  "seed": 0,
+  "pair_label": "qwen_x_qwen",
+  "planner_label": "qwen3_coder_30b",
+  "worker_label": "qwen3_coder_30b",
+  "planner_visible_request": "我有一批病人 CT，每个病人在 <dataset_root>/ct/ 下有一个 <patient_id>.nii.gz，\n在 <dataset_root>/mask/<patient_id>_total/ 下有 TotalSeg 输出的若干结构 mask。\n\n请帮我对每个病人做：\n1. 把同一类的多个结构 mask 合成一个二值 mask（比如所有 rib_left_* 和 rib_right_* 合成一个 rib mask）\n2. 用 CT 的强度填到 mask 区域，得到 \"real-intensity mask\"\n3. 把所有结构合在一起作为前景，剩下的体素当作软组织 CT 输出一份\n\n要支持中途崩溃后续跑。多机会跑很多病人，速度优先。\n输出到 <output_root>/<patient_id>/ 下。\n",
+  "gold_task_goal": "对每个病人，按预定义的结构组（rib / lung / spine / heart / aorta / other_bones）\n正则匹配 TotalSeg 输出文件，每组合并为单个二值 mask（np.maximum 语义），\n并基于该 mask 抠出 real-intensity mask 和软组织 CT。\n支持续跑（基于 .processing_done flag）。\npatient-level 并行。\n",
+  "gold_constraints": [
+    "结构合并算子必须是 np.maximum，不是 np.add（避免重叠区域溢出）",
+    "续跑判定基于 <output_root>/<patient_id>/.processing_done 文件存在性",
+    "结构选择用正则模式（如 rib_(left|right)_\\d+\\.nii\\.gz），不能硬编码完整列表",
+    "affine 和 header 取自第一个被合并的 mask 文件",
+    "软组织 CT = CT 数据，把所有结构区域填为 padding_value（默认 5）",
+    "real-intensity mask 中非 mask 区域填 -999.9（不是 0）",
+    "并行粒度是 patient，单 patient 内串行",
+    "成功完成才写 .processing_done，部分完成不写"
+  ],
+  "gold_relevant_files": [
+    "<dataset_root>/ct/<patient_id>.nii.gz",
+    "<dataset_root>/mask/<patient_id>_total/",
+    "<output_root>/<patient_id>/.processing_done",
+    "<output_root>/<patient_id>/<patient_id>_<group>_mask.nii.gz",
+    "<output_root>/<patient_id>/<patient_id>_<group>_real.nii.gz",
+    "<output_root>/<patient_id>/<patient_id>_soft_tissue.nii.gz",
+    "<output_root>/processing_success.log"
+  ],
+  "judge_only_rubric": {
+    "critical_constraints_min_for_acceptable": 3,
+    "critical_constraints_min_for_strong": 5,
+    "score_caps": {
+      "max_spec_score_if_no_gold_constraint_captured": 3,
+      "max_spec_score_if_forbidden_assumption_introduced": 5,
+      "max_worker_score_if_missing_info_empty_under_weak_spec": 6
+    },
+    "positive_signals": [
+      "Planner states concrete constraints rather than delegating them vaguely.",
+      "Planner flags unresolved choices and unsafe/destructive operations.",
+      "Worker preserves the planner intent while identifying missing implementation details."
+    ],
+    "negative_signals": [
+      "Planner introduces a convenient but wrong default.",
+      "Worker treats an underspecified handoff as complete.",
+      "Worker first actions target files or schemas not grounded in the planner spec."
+    ]
+  },
+  "episode_gold_extras": {},
+  "expected_v1_pitfalls": [
+    "Omit or blur critical constraint: 结构合并算子必须是 np.maximum，不是 np.add（避免重叠区域溢出）",
+    "Omit or blur critical constraint: 续跑判定基于 <output_root>/<patient_id>/.processing_done 文件存在性",
+    "Omit or blur critical constraint: 结构选择用正则模式（如 rib_(left|right)_\\d+\\.nii\\.gz），不能硬编码完整列表"
+  ],
+  "decoys": [
+    "Worker may fill in a plausible implementation default that the planner did not actually specify.",
+    "Worker may treat a visible path or schema summary as complete when it is only partial."
+  ],
+  "forbidden_assumptions": [
+    "Do not infer hidden file naming, merge semantics, resume markers, or destructive write policy unless the planner spec states them."
+  ],
+  "planner_response_text": "### **Worker Implementation Spec**\n\n#### **Observed Facts**\n- Input data is organized into two directories:\n  - `<dataset_root>/ct/` contains `.nii.gz` files named by `<patient_id>`.\n  - `<dataset_root>/mask/<patient_id>_total/` contains multiple structure masks (e.g., `rib_left_1`, `rib_right_1`, etc.) for each patient.\n- Output should be written under `<output_root>/<patient_id>/`.\n- Each patient's CT and mask files are expected to exist in their respective locations.\n\n---\n\n#### **Assumptions**\n1. All structure masks within a patient’s mask directory are named with consistent prefixes (e.g., `rib_left_*`, `rib_right_*`) indicating groupings.\n2. The structure masks are binary (i.e., values are either 0 or 1).\n3. The CT image and all structure masks have matching spatial dimensions and affine transforms.\n4. The output directory structure will be created if it does not already exist.\n5. The worker can read `.nii.gz` files using standard medical imaging libraries like `nibabel`.\n\n---\n\n#### **Constraints**\n1. The worker must support resuming from partial progress — i.e., skip already-completed patients or steps.\n2. The worker must handle crashes gracefully without corrupting existing outputs.\n3. The worker must process one patient at a time to avoid memory issues.\n4. The worker must not overwrite existing outputs unless explicitly instructed to do so.\n5. The worker must ensure that the final real-intensity mask and soft tissue CT are saved in the correct format and location.\n\n---\n\n#### **Risks / Unsafe Choices**\n1. **Overwriting existing outputs**: If a previous run failed mid-process, re-running without checking for prior output could lead to incorrect results.\n2. **Incorrect grouping of structures**: Misidentifying which masks belong together may result in incorrect merged masks.\n3. **Mismatched spatial alignment**: If CT and mask images do not align properly, intensity filling will produce invalid results.\n4. **Memory usage during processing**: Large volumes of data may cause out-of-memory errors; batched or streaming operations are preferred.\n\n---\n\n#### **Open Questions**\n1. What naming convention defines groups of structures? For example, how are `rib_left_*` and `rib_right_*` identified as belonging to the same category?\n2. Are there any known exceptions or special cases in mask naming that require custom handling?\n3. Is there a specific naming pattern or metadata file that maps structure names to categories (e.g., `rib_left_1`, `rib_left_2` → `rib`)?\n4. Should the worker validate that all required input files exist before starting, or proceed with error reporting per patient?\n\n---\n\n```json\n{\n  \"assumptions\": [\n    \"Structure masks are named consistently with group identifiers.\",\n    \"CT and mask images are aligned in space and resolution.\",\n    \"Output directories are created automatically if missing.\",\n    \"The worker uses standard tools for reading `.nii.gz` files.\"\n  ],\n  \"risks\": [\n    \"Overwriting previously generated outputs due to lack of resume logic.\",\n    \"Incorrect merging of structure masks due to misidentified groupings.\",\n    \"Misalignment between CT and mask leading to invalid intensity fills.\",\n    \"Memory overflow when processing large volumes.\"\n  ],\n  \"open_questions\": [\n    \"How are structure masks grouped (e.g., via prefix)?\",\n    \"Are there exceptions to the naming convention?\",\n    \"Is there a mapping file or metadata to define structure categories?\",\n    \"Should the worker check for existence of inputs before processing?\"\n  ]\n}\n```",
+  "worker_response_text": "{\n  \"understood_goal\": \"Process CT scans and their corresponding structure masks for each patient, grouping masks by consistent naming conventions, merging them into real-intensity masks, and saving the results in a specified output directory.\",\n  \"constraints_to_follow\": [\n    \"Support resuming from partial progress by skipping already-completed patients or steps.\",\n    \"Handle crashes gracefully without corrupting existing outputs.\",\n    \"Process one patient at a time to avoid memory issues.\",\n    \"Do not overwrite existing outputs unless explicitly instructed.\",\n    \"Ensure final real-intensity mask and soft tissue CT are saved in correct format and location.\",\n    \"All structure masks within a patient's mask directory must be named with consistent prefixes indicating groupings.\",\n    \"Structure masks are binary (values are either 0 or 1).\",\n    \"CT image and all structure masks must have matching spatial dimensions and affine transforms.\",\n    \"Output directory structure will be created if it does not already exist.\",\n    \"Worker must use standard medical imaging libraries like nibabel to read .nii.gz files.\"\n  ],\n  \"information_still_missing\": [\n    \"What specific naming convention defines groups of structures (e.g., how are rib_left_* and rib_right_* identified as belonging to the same category?)\",\n    \"Are there any known exceptions or special cases in mask naming that require custom handling?\",\n    \"Is there a specific naming pattern or metadata file that maps structure names to categories (e.g., rib_left_1, rib_left_2 → rib)?\",\n    \"Should the worker validate that all required input files exist before starting, or proceed with error reporting per patient?\"\n  ],\n  \"first_3_concrete_actions\": [\n    \"Identify the exact naming convention used to group structure masks (e.g., prefix-based grouping) by examining sample filenames in the mask directory.\",\n    \"Determine whether a mapping file or metadata exists that defines structure categories or if grouping is purely based on string prefixes.\",\n    \"Decide on input validation strategy: whether to check for existence of all required input files upfront or handle missing files per patient during processing.\"\n  ]\n}",
+  "worker_response_json": {
+    "understood_goal": "Process CT scans and their corresponding structure masks for each patient, grouping masks by consistent naming conventions, merging them into real-intensity masks, and saving the results in a specified output directory.",
+    "constraints_to_follow": [
+      "Support resuming from partial progress by skipping already-completed patients or steps.",
+      "Handle crashes gracefully without corrupting existing outputs.",
+      "Process one patient at a time to avoid memory issues.",
+      "Do not overwrite existing outputs unless explicitly instructed.",
+      "Ensure final real-intensity mask and soft tissue CT are saved in correct format and location.",
+      "All structure masks within a patient's mask directory must be named with consistent prefixes indicating groupings.",
+      "Structure masks are binary (values are either 0 or 1).",
+      "CT image and all structure masks must have matching spatial dimensions and affine transforms.",
+      "Output directory structure will be created if it does not already exist.",
+      "Worker must use standard medical imaging libraries like nibabel to read .nii.gz files."
+    ],
+    "information_still_missing": [
+      "What specific naming convention defines groups of structures (e.g., how are rib_left_* and rib_right_* identified as belonging to the same category?)",
+      "Are there any known exceptions or special cases in mask naming that require custom handling?",
+      "Is there a specific naming pattern or metadata file that maps structure names to categories (e.g., rib_left_1, rib_left_2 → rib)?",
+      "Should the worker validate that all required input files exist before starting, or proceed with error reporting per patient?"
+    ],
+    "first_3_concrete_actions": [
+      "Identify the exact naming convention used to group structure masks (e.g., prefix-based grouping) by examining sample filenames in the mask directory.",
+      "Determine whether a mapping file or metadata exists that defines structure categories or if grouping is purely based on string prefixes.",
+      "Decide on input validation strategy: whether to check for existence of all required input files upfront or handle missing files per patient during processing."
+    ]
+  },
+  "deterministic_contract_checks": {
+    "planner_non_empty": true,
+    "planner_has_json_tail": true,
+    "worker_json_parse_ok": true,
+    "worker_required_fields_present": true,
+    "violations": []
+  },
+  "judge_instructions": [
+    "Evaluate information flow, not whether final code was produced.",
+    "Planner constraint coverage must be judged against gold_constraints that are reasonably inferable from the visible request; do not require impossible hidden details unless the episode rubric marks them critical.",
+    "Penalize planner false confidence when it gives worker a concrete wrong default instead of flagging a missing detail.",
+    "Reward worker output when it correctly flags missing information caused by a weak planner spec.",
+    "Score each dimension 0-2 and total to 0-10.",
+    "Return strict JSON only."
+  ],
+  "output_schema": {
+    "planner_constraint_coverage_score": "0-2",
+    "planner_risk_flagging_score": "0-2",
+    "worker_goal_alignment_score": "0-2",
+    "worker_missing_info_score": "0-2",
+    "worker_first_action_precision_score": "0-2",
+    "spec_score": "0-10",
+    "worker_score": "0-10",
+    "final_verdict": "spec_strong | spec_acceptable | spec_weak | spec_unsafe",
+    "covered_gold_constraints": [
+      "gold constraints captured by planner or worker"
+    ],
+    "missed_gold_constraints": [
+      "important gold constraints omitted or mishandled"
+    ],
+    "forbidden_assumptions_made": [
+      "wrong assumptions made by planner or worker"
+    ],
+    "separation_notes": "why this cell should or should not separate models",
+    "concise_rationale": "short evidence-based explanation"
+  }
+}

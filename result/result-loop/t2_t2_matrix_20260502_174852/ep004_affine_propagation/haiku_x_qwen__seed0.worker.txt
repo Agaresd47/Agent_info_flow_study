@@ -1,0 +1,26 @@
+{
+  "understood_goal": "Align affine matrices of TotalSeg mask files with the CT affine reference by cleaning and sign-aligning the masks' affines using QR decomposition, then propagating the corrected affine to all mask files in each patient directory.",
+  "constraints_to_follow": [
+    "Disk writes are destructive and must be handled carefully with atomic writes (write-to-temp, then rename).",
+    "QR decomposition sign ambiguity must be addressed by documenting the chosen library/convention and testing it.",
+    "Parallel I/O on ~3000 patients requires process-level locking per patient directory to prevent race conditions.",
+    "Affine mismatch detection must have a defined tolerance for what constitutes a 'sign inconsistency'.",
+    "Original mask affines will be overwritten without backup unless explicitly requested.",
+    "The CT affine is the ground truth and must be preserved in terms of orientation and spacing."
+  ],
+  "information_still_missing": [
+    "Exact naming pattern for mask files (e.g., `*_mask.nii.gz`, `seg_*.nii.gz`, or a specific list).",
+    "Preferred QR decomposition library and sign convention (e.g., NumPy's `np.linalg.qr()` or SciPy).",
+    "Formal definition of how 'sign alignment' is performed (e.g., maximizing dot product of rotation matrices or matching specific axis signs).",
+    "Threshold or condition for triggering the cleaning process (i.e., when an affine is considered inconsistent enough to require correction).",
+    "Whether original affines should be backed up for auditability or rollback purposes.",
+    "Preferred parallelization strategy (process-per-patient or thread-pool within each patient).",
+    "Error handling behavior (should the system fail on a single corrupted mask, skip it, or continue processing?).",
+    "Required level of logging detail (per-file affine diffs, summary statistics, or just success/failure counts?)."
+  ],
+  "first_3_concrete_actions": [
+    "Request clarification on the exact naming pattern for mask files in each patient directory.",
+    "Specify the preferred QR decomposition library and sign convention to be used, and confirm whether testing on sample data is required.",
+    "Define the formal criterion for 'sign alignment' and determine the acceptable tolerance for affine differences to trigger cleaning."
+  ]
+}

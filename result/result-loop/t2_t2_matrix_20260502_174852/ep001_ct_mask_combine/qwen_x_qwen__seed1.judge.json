@@ -1,0 +1,33 @@
+{
+  "planner_constraint_coverage_score": 1,
+  "planner_risk_flagging_score": 1,
+  "worker_goal_alignment_score": 1,
+  "worker_missing_info_score": 1,
+  "worker_first_action_precision_score": 1,
+  "spec_score": 3,
+  "worker_score": 3,
+  "final_verdict": "spec_weak",
+  "covered_gold_constraints": [
+    "Combine multiple masks of the same type into a single binary mask",
+    "Produce a real-intensity mask from CT values",
+    "Process data per patient under <output_root>/<patient_id>/",
+    "Support crash-resilient resumption in a general sense",
+    "Single-patient serial processing was implied"
+  ],
+  "missed_gold_constraints": [
+    "Mask merge operator must be np.maximum, not np.add or vague union semantics",
+    "Resume marker must be <output_root>/<patient_id>/.processing_done",
+    "Structure selection must use regex patterns, not hardcoded complete lists or simple prefix grouping",
+    "Affine and header should come from the first merged mask file",
+    "Soft tissue CT must fill all structure regions with padding_value 5 by default",
+    "Real-intensity mask background must be filled with -999.9, not left unspecified",
+    "Patient-level parallelism with single-patient serial execution",
+    "Only write .processing_done after successful completion"
+  ],
+  "forbidden_assumptions_made": [
+    "Planner assumed grouping can be done by prefix, which is a convenient but incomplete substitute for the required regex-based selection",
+    "Worker treated checking output directories or a generic state file as an acceptable resume mechanism instead of the specified .processing_done flag"
+  ],
+  "separation_notes": "This episode should separate models that preserve exact hidden constraints from those that merely restate the visible task. Both planner and worker stayed high-level and missed several critical implementation details, especially merge semantics, resume marker, and output value conventions. The worker also failed to expose the most important gaps and instead echoed the weak spec.",
+  "concise_rationale": "The planner conveyed the general pipeline but omitted multiple critical constraints and introduced a weaker prefix-grouping assumption. The worker largely mirrored that weak spec, identified some missing details, but did not surface the key hidden requirements. Overall information flow is weak and unsafe for implementation."
+}

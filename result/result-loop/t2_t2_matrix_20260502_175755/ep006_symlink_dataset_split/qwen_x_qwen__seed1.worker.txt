@@ -1,0 +1,24 @@
+{
+  "understood_goal": "To split a dataset of DRR images and organ-specific segmentation masks into train/test/validation sets following an 8:1:1 ratio while preserving patient-level consistency, and generate symbolic links in accordance with nnU-Net dataset format.",
+  "constraints_to_follow": [
+    "Do not modify or delete original files.",
+    "Use symbolic links exclusively to avoid copying large image files.",
+    "Structure output directories as per nnU-Net conventions: imagesTr/imagesTs/imagesVl and labelsTr/labelsTs/labelsVl.",
+    "Ensure patient-level consistency during data splitting (if a patient is in one split, all their organ parts must be in the same split).",
+    "Respect all organ/part mappings during symlink creation.",
+    "The input directory contains DRR images in CT_no_bed/, and organ-specific subdirectories with part-level segmentation masks.",
+    "Organ names and their corresponding part lists are defined in organ_list.txt and <organ>_parts.txt respectively."
+  ],
+  "information_still_missing": [
+    "Is the `organ_list.txt` file located at the root of the input directory?",
+    "Should the worker validate presence of all organ/part combinations for each patient?",
+    "What is the expected behavior for patients with missing organs or parts?",
+    "Are there any special handling rules for empty or missing organ directories?",
+    "Is there a requirement for a completion marker or checkpoint mechanism to prevent reprocessing?"
+  ],
+  "first_3_concrete_actions": [
+    "Verify the existence and location of the `organ_list.txt` file in the input directory.",
+    "Parse the `organ_list.txt` to identify all organ names and check for corresponding `<organ>_parts.txt` files.",
+    "Scan the input directory to collect all patient IDs and confirm that each patient has complete organ/part data as per the organ lists."
+  ]
+}

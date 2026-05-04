@@ -1,0 +1,35 @@
+{
+  "understood_goal": "Process patient CT scans and TotalSeg masks to generate grouped structure masks, real-intensity masks, and a composite foreground + soft-tissue fallback output, while supporting resumption and parallel execution.",
+  "constraints_to_follow": [
+    "Must resume after mid-process failure by detecting completed patients or phases.",
+    "Support multi-machine, multi-patient parallelization.",
+    "Preserve NIfTI spatial metadata (affine, header) in all outputs.",
+    "Handle large volumes efficiently, considering memory usage.",
+    "Ensure atomic writes for intermediate outputs to avoid corruption.",
+    "Validate input file integrity before processing.",
+    "Use binary mask operations or clearly define non-binary behavior.",
+    "Follow a consistent naming and output schema for all generated files."
+  ],
+  "information_still_missing": [
+    "Exact mask grouping rules (e.g., prefix-based grouping or external mapping).",
+    "Naming convention for grouped mask outputs.",
+    "Whether each grouped mask should be a separate file or stacked in one volume.",
+    "Definition of the \"soft-tissue CT value\" used in Phase 3.",
+    "What marks a patient as complete for resumption purposes.",
+    "Policy for handling partial outputs (resume from last completed phase or restart).",
+    "Overwrite policy for existing output files.",
+    "Atomic write semantics for intermediate outputs (temp file + move).",
+    "Mechanism for discovering the list of patients to process.",
+    "Locking mechanism to prevent race conditions during parallel execution.",
+    "Expected volume dimensions or memory footprint per patient.",
+    "Input file validation strategy (e.g., NIfTI header checks).",
+    "Error handling strategy (fail fast, log and continue, retry).",
+    "Preferred NIfTI I/O library (e.g., nibabel, SimpleITK).",
+    "Whether processing time and throughput metrics should be logged."
+  ],
+  "first_3_concrete_actions": [
+    "Validate that the input CT file and mask directory exist and are readable.",
+    "Enumerate all mask files in the mask directory to determine naming patterns and structure.",
+    "Check if the output directory already exists and contains valid completed outputs to decide whether to skip or resume processing."
+  ]
+}

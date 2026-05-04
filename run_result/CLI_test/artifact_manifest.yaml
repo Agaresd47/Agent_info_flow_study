@@ -1,0 +1,19 @@
+bundle_id: CLI_test
+
+task:
+  task_id: t1_cli_original_case_reformat_nn_unet_guarded
+  task_yaml: data/t1_tasks/test_ground/t1_cli_original_case_reformat_nn_unet_guarded.yaml
+  judge_yaml: data/t1_tasks/test_ground/judges/t1_cli_original_case_reformat_nn_unet_guarded.judge.yaml
+  fixture_yaml: fixtures/t1_workspaces/fixtures_t1_cli_original_case_reformat_nn_unet_guarded.yaml
+
+config:
+  canonical_input_config: run_result/CLI_test/input/cli_first1_v1_config.yaml
+  all4_input_config: run_result/CLI_test/input/cli_first1_v1_all4_config.yaml
+
+output:
+  canonical_output_json: run_result/CLI_test/output/CLI_first1_V1.json
+  all4_output_json: run_result/CLI_test/output/CLI_first1_V1_all4.json
+
+notes:
+  - "This V1 bundle is pinned to the passing haiku_4_5 runner."
+  - "The all4 output preserves both passing and failing records for cross-model comparison."

@@ -1,0 +1,32 @@
+{
+  "understood_goal": "Generate a valid nnU-Net v2 dataset.json file for a single-class lung lower lobe right segmentation task using DRR modality, ensuring proper alignment of training images and labels by case ID.",
+  "constraints_to_follow": [
+    "Produce a valid nnU-Net v2 dataset.json structure with required top-level fields.",
+    "Declare modality as DRR in the appropriate schema location.",
+    "Define exactly one foreground label named 'lung_lower_lobe_right'.",
+    "Align training images and labels by matching case identifiers extracted from filenames.",
+    "Handle mismatches between image and label files by documenting and deciding on skip/error/warn behavior.",
+    "Scan imagesTr/ and labelsTr/ directories for files matching unspecified patterns.",
+    "Decide on path representation format in JSON (absolute, relative to dataset root, or relative to JSON).",
+    "Implement safe write policy for dataset.json (overwrite/skip/error with --force).",
+    "Do not perform preprocessing during JSON generation step."
+  ],
+  "information_still_missing": [
+    "Exact required top-level fields in nnU-Net v2 dataset.json schema.",
+    "Format for representing DRR modality in the schema (string key, enum, numeric code).",
+    "Expected label schema format for a single foreground class.",
+    "Filename convention used in imagesTr/ and labelsTr/ for extracting case IDs.",
+    "Whether multi-channel DRR images are used and how channels are encoded.",
+    "Policy on including imagesTs/ entries in dataset.json.",
+    "Preferred path format in JSON (absolute, relative to dataset root, or relative to JSON).",
+    "Handling of file extensions in the JSON (preserve, normalize, strip).",
+    "Behavior when encountering unpaired files (skip, error, warn).",
+    "Overwrite policy if dataset.json already exists (overwrite, skip, require --force).",
+    "Whether to validate generated JSON against nnU-Net v2 schema before writing."
+  ],
+  "first_3_concrete_actions": [
+    "Retrieve nnU-Net v2 documentation or source code to determine exact required fields in dataset.json schema.",
+    "Define a clear case ID extraction pattern based on typical nnU-Net naming conventions for DRR datasets.",
+    "Specify handling strategy for unpaired files and overwrite behavior before proceeding with implementation."
+  ]
+}

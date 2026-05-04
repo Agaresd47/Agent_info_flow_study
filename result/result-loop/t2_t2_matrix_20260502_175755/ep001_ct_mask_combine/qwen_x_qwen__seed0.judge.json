@@ -1,0 +1,36 @@
+{
+  "planner_constraint_coverage_score": 1,
+  "planner_risk_flagging_score": 1,
+  "worker_goal_alignment_score": 2,
+  "worker_missing_info_score": 1,
+  "worker_first_action_precision_score": 1,
+  "spec_score": 3,
+  "worker_score": 4,
+  "final_verdict": "spec_weak",
+  "covered_gold_constraints": [
+    "Support resuming from previous runs if interrupted",
+    "Handle large volumes of patients efficiently / patient-level batching implied",
+    "Combine multiple masks per structure type",
+    "Preserve original CT intensity values when filling real-intensity masks",
+    "Use CT and mask inputs from the stated dataset locations"
+  ],
+  "missed_gold_constraints": [
+    "Merge operator must be np.maximum, not np.add",
+    "Resume condition must be based on <output_root>/<patient_id>/.processing_done",
+    "Structure selection must use regex matching, not a hardcoded or prefix-only scheme",
+    "Affine and header must come from the first merged mask file",
+    "Soft tissue CT must fill structure regions with padding_value (default 5)",
+    "Real-intensity mask must fill non-mask voxels with -999.9",
+    "Patient-level parallelism with serial processing within each patient",
+    "Write .processing_done only after successful completion"
+  ],
+  "forbidden_assumptions_made": [
+    "Planner assumed grouping can be inferred from shared prefixes / left-right prefixes without stating regex-based matching",
+    "Planner assumed there is no predefined schema for grouping, which conflicts with the gold predefined structure groups",
+    "Planner assumed no specific naming convention exists for final outputs beyond the directory, while the gold task has explicit filenames",
+    "Worker inherited the same vague grouping assumption and did not challenge it",
+    "Worker treated overwrite/resume behavior as generic rather than anchored to the required .processing_done marker"
+  ],
+  "separation_notes": "This episode should separate models mainly on whether they preserve hidden operational constraints. The planner and worker both stayed at a high level and failed to surface the key implementation rules (np.maximum, .processing_done, regex grouping, padding and sentinel values). The worker did correctly preserve the overall goal and noticed several open questions, but it did not expose the most critical gaps, so the information flow remains weak.",
+  "concise_rationale": "The planner captured the broad task but omitted or blurred several critical constraints and introduced unsafe generalizations about grouping and naming. The worker mirrored that broad intent and listed missing details, but did not recover the key hidden rules or correct the planner's weak assumptions. Overall this is a weak spec with only partial task preservation."
+}

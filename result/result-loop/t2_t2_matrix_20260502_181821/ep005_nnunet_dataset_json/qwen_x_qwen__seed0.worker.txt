@@ -1,0 +1,22 @@
+{
+  "understood_goal": "Generate a valid nnU-Net v2 dataset.json file for the lung right lower lobe segmentation task based on the provided dataset directory structure and files.",
+  "constraints_to_follow": [
+    "The script must generate a valid dataset.json according to nnU-Net v2 schema",
+    "Case IDs must align between images and labels based on filename prefix",
+    "Paths in dataset.json should be relative to the dataset root",
+    "File extensions are .nii.gz for both images and labels",
+    "Test set (imagesTs/) will be included in the generated dataset.json"
+  ],
+  "information_still_missing": [
+    "Exact required fields in the dataset.json schema for nnU-Net v2, specifically under 'training' and 'test'",
+    "Whether paths in dataset.json should use forward slashes or platform-specific separators",
+    "Specific rules for handling file extensions beyond .nii.gz",
+    "Clarification on whether the test set should be listed in the \"test\" key of dataset.json",
+    "Strictness of filename matching rule between images and labels (e.g., if image is named case001_0000.nii.gz, does label have to be case001.nii.gz)"
+  ],
+  "first_3_concrete_actions": [
+    "Verify the exact nnU-Net v2 dataset.json schema specification to understand required fields",
+    "Confirm the expected path separator format (forward slash vs platform-specific) for dataset.json",
+    "Validate whether test set inclusion in the \"test\" key is mandatory or optional"
+  ]
+}

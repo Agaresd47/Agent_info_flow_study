@@ -1,0 +1,23 @@
+{
+  "understood_goal": "Correct affine transformations in medical imaging data by aligning mask files' affines to match a reference CT scan's affine, using QR decomposition and sign alignment while preserving the original CT file.",
+  "constraints_to_follow": [
+    "Must preserve the integrity of the original data; no overwrite without backup or clear flag.",
+    "Parallel processing is required due to ~3000 patients.",
+    "The worker must handle potential errors gracefully (e.g., missing files, invalid affine matrices).",
+    "No modification of the `ct.nii.gz` file itself — only other mask files should be modified.",
+    "All input files are in NIfTI format (`*.nii.gz`).",
+    "The directory structure is consistent per patient, with one `ct.nii.gz` and multiple mask files."
+  ],
+  "information_still_missing": [
+    "Should the worker log progress or errors to a specific output location?",
+    "Is there a predefined naming convention for mask files (e.g., all `.nii.gz` files except `ct.nii.gz`)?",
+    "Are there known edge cases where the affine matrix might be singular or degenerate?",
+    "How should the worker handle directories with no mask files or only `ct.nii.gz`?",
+    "What level of parallelism is acceptable (e.g., number of concurrent processes)?"
+  ],
+  "first_3_concrete_actions": [
+    "Confirm the exact naming convention for mask files to identify which files to process (e.g., all .nii.gz except ct.nii.gz).",
+    "Determine whether logging of progress and errors is required and if so, identify the destination path or mechanism.",
+    "Clarify the acceptable degree of parallelism for processing the ~3000 patients to ensure system stability and resource usage."
+  ]
+}

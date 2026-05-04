@@ -1,0 +1,23 @@
+{
+  "understood_goal": "To split a dataset of medical images into train/test/validation sets with an 8:1:1 ratio, create symbolic links in the correct nnU-Net directory structure under an output root, and ensure that organ-specific masks and DRR images are correctly linked based on the organ list definition.",
+  "constraints_to_follow": [
+    "The splitting ratio must be exactly 8:1:1 for train/test/validation sets.",
+    "Symbolic links must be created under <output_root> following nnU-Net conventions.",
+    "Part mappings defined in organ_list.txt must be respected during symlink creation.",
+    "No modification or copying of original files should occur; only symbolic links are allowed.",
+    "All organ directories must follow consistent naming conventions for patient IDs and parts.",
+    "Worker must have read access to all input files and write access to the output root directory."
+  ],
+  "information_still_missing": [
+    "Exact format of organ_list.txt (e.g., is it a simple list of organ names or does it map organs to parts?)",
+    "Whether there are expected edge cases such as missing organ masks for certain patients or corrupted image files",
+    "How to handle cases where some organs do not have corresponding part files",
+    "How to manage potential conflicts if multiple organs reference the same part name",
+    "Specific structure of the input data (e.g., how many levels deep the organ directories go)"
+  ],
+  "first_3_concrete_actions": [
+    "Read and parse the organ_list.txt file to understand its format and extract organ-part mappings.",
+    "Validate that all required input paths exist and are accessible for reading.",
+    "Verify the consistency of patient ID and part naming conventions across organ directories."
+  ]
+}

@@ -1,0 +1,53 @@
+bundle_id: Chat_test
+
+tasks:
+  - task_id: t1_cxr14_subset_extraction
+    task_yaml: data/t1_tasks/cxr14_subset_extraction.yaml
+    judge_yaml: data/t1_tasks/judges/cxr14_subset_extraction.judge.yaml
+    fixture_yaml: fixtures/t1_workspaces/t1_pilot_cxr14_subset_extraction.yaml
+  - task_id: t1_heart_mask_merge_cleanup
+    task_yaml: data/t1_tasks/heart_mask_merge_cleanup.yaml
+    judge_yaml: data/t1_tasks/judges/heart_mask_merge_cleanup.judge.yaml
+    fixture_yaml: fixtures/t1_workspaces/t1_pilot_heart_mask_merge_cleanup.yaml
+  - task_id: t1_totalseg_mask_quarantine
+    task_yaml: data/t1_tasks/totalseg_mask_quarantine.yaml
+    judge_yaml: data/t1_tasks/judges/totalseg_mask_quarantine.judge.yaml
+    fixture_yaml: fixtures/t1_workspaces/t1_pilot_totalseg_mask_quarantine.yaml
+  - task_id: t1_code_export_zip_sanitizer
+    task_yaml: data/t1_tasks/code_export_zip_sanitizer.yaml
+    judge_yaml: data/t1_tasks/judges/code_export_zip_sanitizer.judge.yaml
+    fixture_yaml: fixtures/t1_workspaces/t1_code_export_zip_sanitizer.yaml
+  - task_id: t1_drr_quality_quarantine_inventory
+    task_yaml: data/t1_tasks/drr_quality_quarantine_inventory.yaml
+    judge_yaml: data/t1_tasks/judges/drr_quality_quarantine_inventory.judge.yaml
+    fixture_yaml: fixtures/t1_workspaces/t1_drr_quality_quarantine_inventory.yaml
+  - task_id: t1_nnunet_cli_inference_plan
+    task_yaml: data/t1_tasks/nnunet_cli_inference_plan.yaml
+    judge_yaml: data/t1_tasks/judges/nnunet_cli_inference_plan.judge.yaml
+    fixture_yaml: fixtures/t1_workspaces/t1_nnunet_cli_inference_plan.yaml
+
+configs:
+  assets_config: configs/task1/chat_test_assets.yaml
+  matrix_A0_strict: configs/task1/chat_test_matrix_A0_strict.yaml
+  matrix_A0_interactive: configs/task1/chat_test_matrix_A0_interactive.yaml
+  matrix_A1: configs/task1/chat_test_matrix_A1.yaml
+  matrix_A2: configs/task1/chat_test_matrix_A2.yaml
+  bundled_inputs:
+    - run_result/Chat_test/input/chat_test_assets.yaml
+    - run_result/Chat_test/input/chat_test_matrix_A0_strict.yaml
+    - run_result/Chat_test/input/chat_test_matrix_A0_interactive.yaml
+    - run_result/Chat_test/input/chat_test_matrix_A1.yaml
+    - run_result/Chat_test/input/chat_test_matrix_A2.yaml
+
+outputs:
+  condition_roots:
+    - run_result/Chat_test/output/A0_strict
+    - run_result/Chat_test/output/A0_interactive
+    - run_result/Chat_test/output/A1
+    - run_result/Chat_test/output/A2
+  progressive_summary: run_result/Chat_test/progressive_summary.json
+
+notes:
+  - "Chat_test is the current canonical 6-task read_only chat bundle."
+  - "The run strategy uses progressive short-circuiting on full-score cells."
+  - "See progressive_summary.json for executed cells vs inherited skipped cells."

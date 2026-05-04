@@ -1,0 +1,23 @@
+{
+  "understood_goal": "Correct affine transformations in medical imaging data by aligning mask files' affine matrices to match the CT file's affine matrix using QR decomposition for noise cleaning and sign alignment.",
+  "constraints_to_follow": [
+    "Preserve original data integrity; do not overwrite without backup or confirmation.",
+    "Ensure parallel processing is safe and avoids race conditions on shared resources.",
+    "Handle potential errors gracefully (e.g., missing files, invalid affine matrices).",
+    "All input files must be in NIfTI format (*.nii.gz).",
+    "Each patient directory must contain exactly one ct.nii.gz file.",
+    "Mask files are any .nii.gz files other than ct.nii.gz in the same directory.",
+    "Affine matrices are 4x4 homogeneous transformation matrices.",
+    "Use nibabel and numpy for processing."
+  ],
+  "information_still_missing": [
+    "Exact naming convention for mask files (are all .nii.gz files except ct.nii.gz considered masks?)",
+    "Whether the worker should log progress or errors during processing",
+    "Specific validation method to confirm successful affine alignment after correction"
+  ],
+  "first_3_concrete_actions": [
+    "Confirm the exact definition of mask files within a directory (e.g., all .nii.gz except ct.nii.gz)",
+    "Determine if logging of progress and errors is required or optional",
+    "Identify the method for validating that affine alignment was successful post-correction"
+  ]
+}

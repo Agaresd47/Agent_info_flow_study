@@ -1,0 +1,25 @@
+{
+  "understood_goal": "Generate a `dataset.json` file for nnU-Net v2 that describes a dataset named `Dataset001_LungLobeRight`, including training cases from `imagesTr/` and `labelsTr/` directories, while excluding test cases from `imagesTs/`.",
+  "constraints_to_follow": [
+    "The script must not modify or delete existing files.",
+    "The script must not assume default values for schema fields unless clearly defined in nnU-Net v2 documentation.",
+    "The script must not hardcode paths; all paths must be relative to the dataset root or configurable.",
+    "The script must not include test cases (`imagesTs`) in the `training` list.",
+    "The script must ensure that each training image has a corresponding label file with matching base name.",
+    "The script must derive `case_id` from the filename without extension.",
+    "The script must validate that image and label files align properly by name and extension."
+  ],
+  "information_still_missing": [
+    "What are the exact schema fields required in the `dataset.json` for nnU-Net v2?",
+    "What is the expected file extension for images and labels in `imagesTr/` and `labelsTr/`?",
+    "Should the script validate that each image has a matching label file, and how should it handle mismatches?",
+    "Is there a specific naming convention for `case_id` beyond removing the file extension?",
+    "Are there any reserved or special characters in filenames that require escaping or handling?",
+    "Should the script generate a completion marker or log file after successful execution?"
+  ],
+  "first_3_concrete_actions": [
+    "Verify the exact schema definition for `dataset.json` in nnU-Net v2 documentation to determine required fields.",
+    "Confirm the expected file extensions for both images and labels in the training directories.",
+    "Design validation logic to check for matching image-label pairs and decide on behavior for mismatched files."
+  ]
+}

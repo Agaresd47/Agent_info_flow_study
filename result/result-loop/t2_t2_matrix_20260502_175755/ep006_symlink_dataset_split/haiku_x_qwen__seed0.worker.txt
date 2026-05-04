@@ -1,0 +1,32 @@
+{
+  "understood_goal": "Assemble a multi-organ medical imaging dataset from pre-processed DRR images and organ-specific masks, split into train/test/validation sets (8:1:1 ratio), and organize via symlinks into nnU-Net directory structure.",
+  "constraints_to_follow": [
+    "Use symlinks only, not file copies",
+    "Split patients into train/test/validation sets with an 8:1:1 ratio",
+    "Organize output in nnU-Net standard directory structure",
+    "Patient-level splitting (all data for one patient goes to same split)",
+    "DRR images must be named as <patient_id>.jpg in CT_no_bed/",
+    "Organ mask directories follow naming convention <patient_id>_<organ_suffix> or <patient_id>_total",
+    "Use a fixed random seed for reproducible splits",
+    "Ensure symlinks point from output structure back to original files in input_root",
+    "Handle multi-part organ masks by aggregating them into a single label file per organ",
+    "Label files must be in a format compatible with nnU-Net (e.g., NIfTI)"
+  ],
+  "information_still_missing": [
+    "Exact schema and content format of organ_list.txt",
+    "How multi-part masks per organ should be combined into a single label file (stacking, merging, separate files?)",
+    "Output label format (e.g., .nii.gz, .npy, .jpg)",
+    "Mapping rule from patient ID to case ID for nnU-Net naming convention",
+    "Whether symlinks should use relative or absolute paths",
+    "Policy for handling patients with DRR but no organ masks, or vice versa",
+    "Rounding behavior for 8:1:1 split when patient count is not divisible by 10",
+    "Write safety policy for existing output directories (fail, overwrite, skip, merge?)",
+    "Validation policy for symlink targets before creating links",
+    "Whether the split should be stratified by any attribute (e.g., organ coverage)"
+  ],
+  "first_3_concrete_actions": [
+    "Enumerate all unique patient IDs from filenames in <input_root>/CT_no_bed/",
+    "Parse <input_root>/organ_list.txt to determine organ→part mappings",
+    "Validate that each patient has corresponding DRR image and organ mask directories before proceeding with split assignment"
+  ]
+}

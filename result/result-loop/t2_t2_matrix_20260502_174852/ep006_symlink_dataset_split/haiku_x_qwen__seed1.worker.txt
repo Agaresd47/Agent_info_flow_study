@@ -1,0 +1,25 @@
+{
+  "understood_goal": "To assemble an nnU-Net compatible dataset by creating symbolic links from a flat input directory structure to a split output directory structure, following an 8:1:1 train/test/validation ratio, using organ-part mappings defined in a separate file.",
+  "constraints_to_follow": [
+    "All output must consist of symbolic links only; no file copying is allowed.",
+    "The dataset split must strictly follow an 8:1:1 ratio (train:test:validation).",
+    "Individual part files (not whole organs) are the atomic unit for linking.",
+    "The input directory must remain unmodified.",
+    "The patient splitting process must be deterministic using a fixed seed or patient ID ordering."
+  ],
+  "information_still_missing": [
+    "The exact format and schema of `organ_list.txt` (e.g., CSV, JSON, plain text, organ name → list of parts).",
+    "The specific naming convention for the output directories (e.g., `imagesTr/`, `imagesTs/`, `imagesVal/` vs. `train/`, `test/`, `validation/`).",
+    "Whether output symlinks should preserve original filenames or be renamed according to nnU-Net conventions.",
+    "The precise logic for extracting patient IDs from filenames (e.g., first token before `_` or `.`).",
+    "How remainder patients are assigned in an 8:1:1 split when the total number of patients is not divisible by 10.",
+    "Whether symlinks should be created as relative or absolute paths.",
+    "The error handling strategy (fail-fast, continue on error, dry-run mode).",
+    "Behavior when the output root directory already exists (overwrite, skip, or error)."
+  ],
+  "first_3_concrete_actions": [
+    "Validate that the input root directory exists and contains all expected organ folders and the `organ_list.txt` file.",
+    "Parse the `organ_list.txt` to extract the organ-to-part mapping and verify that all referenced parts exist in the filesystem.",
+    "Scan all organ folders to collect a unique set of patient IDs and sort them deterministically for splitting."
+  ]
+}

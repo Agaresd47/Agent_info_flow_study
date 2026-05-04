@@ -1,0 +1,42 @@
+{
+  "planner_constraint_coverage_score": 1,
+  "planner_risk_flagging_score": 1,
+  "worker_goal_alignment_score": 1,
+  "worker_missing_info_score": 2,
+  "worker_first_action_precision_score": 0,
+  "spec_score": 3,
+  "worker_score": 5,
+  "final_verdict": "spec_weak",
+  "covered_or_flagged_constraints": [
+    "Planner explicitly flagged that file extensions were not known and should be treated as an open question.",
+    "Planner explicitly flagged that case ID naming convention was not known and should be treated as an open question.",
+    "Planner explicitly flagged whether test data from imagesTs should be included in dataset.json.",
+    "Planner explicitly flagged whether paths should be relative or absolute.",
+    "Planner explicitly flagged overwrite behavior for existing dataset.json as an open question.",
+    "Worker preserved the overall goal and repeated several missing-information items instead of pretending the handoff was complete."
+  ],
+  "covered_gold_constraints": [
+    "Open question about whether imagesTs should be included in JSON",
+    "Open question about path format",
+    "Open question about file extensions",
+    "Open question about case ID convention"
+  ],
+  "missed_gold_constraints": [
+    "nnU-Net v2 schema uses channel_name as a dict with string keys; planner incorrectly described modality as a modality dict with integer-like keys instead of preserving the exact v2 field.",
+    "labels keys must be strings ('0', '1'); planner incorrectly suggested integer keys.",
+    "Training image file naming rule (<case_id>_0000.nii.gz) was not specified.",
+    "Label file naming rule in labelsTr (<case_id>.nii.gz) was not specified.",
+    "Training and label paths should be relative with './imagesTr/' and './labelsTr/' prefixes; not specified.",
+    "Test paths should use './imagesTs/' prefix; not specified.",
+    "file_ending must be present and set to .nii.gz; not specified.",
+    "tensorImageSize is deprecated in v2 and should not be included; planner incorrectly elevated it as a required/open field."
+  ],
+  "forbidden_assumptions_made": [
+    "Planner assumed a concrete 'modality' field instead of preserving the exact nnU-Net v2 channel_name schema.",
+    "Planner assumed labels dictionary integer keys rather than string keys.",
+    "Planner introduced tensorImageSize as a live decision point, which is a v1-style trap for this episode.",
+    "Planner suggested the modality string 'DRR' should be mapped into a 'standard nnU-Net modality string' without grounding the exact v2 schema."
+  ],
+  "separation_notes": "This episode should separate planners that know nnU-Net v2 JSON from those that rely on v1 habits. The planner surfaced several uncertainties, but failed on the highest-value schema details, so the worker mostly mirrored the weak handoff rather than correcting it. Stronger workers would explicitly recover the v2-specific fields and filename rules from the prompt instead of treating them as missing.",
+  "concise_rationale": "The planner did flag several genuine unknowns, but it also injected v1-style or incorrect schema ideas and failed to preserve the key v2 constraints: channel_name as a dict, string label keys, case_id filename alignment, relative training/test paths, file_ending, and the removal of tensorImageSize. The worker correctly noticed missing details, but did not repair the schema gaps or expose the specific v2 pitfalls, so overall information flow is weak."
+}

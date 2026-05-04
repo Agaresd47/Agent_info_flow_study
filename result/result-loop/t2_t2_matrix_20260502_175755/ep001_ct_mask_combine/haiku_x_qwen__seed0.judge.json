@@ -1,0 +1,34 @@
+{
+  "planner_constraint_coverage_score": 1,
+  "planner_risk_flagging_score": 1,
+  "worker_goal_alignment_score": 1,
+  "worker_missing_info_score": 1,
+  "worker_first_action_precision_score": 1,
+  "spec_score": 4,
+  "worker_score": 4,
+  "final_verdict": "spec_weak",
+  "covered_gold_constraints": [
+    "Groups masks by anatomical class / structure class",
+    "Supports resumption after failure / crash recovery",
+    "Processes CT and mask outputs into intensity-filled and soft-tissue outputs",
+    "Outputs under <output_root>/<patient_id>/",
+    "Mentions throughput / multi-machine parallelization"
+  ],
+  "missed_gold_constraints": [
+    "Did not preserve that mask merging must use np.maximum semantics",
+    "Did not preserve that resume marker must be <output_root>/<patient_id>/.processing_done",
+    "Did not preserve that structure selection must use regex patterns rather than a hardcoded full list",
+    "Did not specify affine and header should come from the first merged mask file",
+    "Did not specify soft tissue CT padding value should be 5",
+    "Did not specify real-intensity mask background should be -999.9",
+    "Did not specify patient-level parallelism with single-patient serial execution",
+    "Did not specify successful completion only writes .processing_done"
+  ],
+  "forbidden_assumptions_made": [
+    "Planner introduced a convenient but wrong completion marker assumption (.done) instead of the required .processing_done",
+    "Planner assumed TotalSeg naming follows a consistent convention and deterministic prefix grouping without grounding the exact regex-based selection",
+    "Worker accepted the planner's incomplete/incorrect assumptions as if they were sufficient"
+  ],
+  "separation_notes": "This episode should separate models because the hidden constraints are highly specific and easy to blur: merge operator, resume flag path, regex-based grouping, and sentinel values. The worker mostly echoed the weak planner spec instead of surfacing the missing critical implementation details or rejecting the incorrect .done suggestion.",
+  "concise_rationale": "Planner captured the broad pipeline shape but missed several critical gold constraints and introduced a wrong resume-marker default. Worker aligned with the high-level goal and did identify some missing info, but it treated the underspecified handoff as mostly complete and repeated the incorrect .done idea, so both spec and worker scores remain low."
+}

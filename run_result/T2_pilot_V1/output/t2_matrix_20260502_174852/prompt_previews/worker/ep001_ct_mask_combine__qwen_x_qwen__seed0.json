@@ -1,0 +1,24 @@
+{
+  "condition": "B0_guardrailed",
+  "seed": 0,
+  "episode_id": "ep001_ct_mask_combine",
+  "planner_spec": "### **Worker Implementation Spec**\n\n#### **Observed Facts**\n- Input data is organized into two directories:\n  - `<dataset_root>/ct/` contains `.nii.gz` files named by `<patient_id>`.\n  - `<dataset_root>/mask/<patient_id>_total/` contains multiple structure masks (e.g., `rib_left_1`, `rib_right_1`, etc.) for each patient.\n- Output should be written under `<output_root>/<patient_id>/`.\n- Each patient's CT and mask files are expected to exist in their respective locations.\n\n---\n\n#### **Assumptions**\n1. All structure masks within a patient’s mask directory are named with consistent prefixes (e.g., `rib_left_*`, `rib_right_*`) indicating groupings.\n2. The structure masks are binary (i.e., values are either 0 or 1).\n3. The CT image and all structure masks have matching spatial dimensions and affine transforms.\n4. The output directory structure will be created if it does not already exist.\n5. The worker can read `.nii.gz` files using standard medical imaging libraries like `nibabel`.\n\n---\n\n#### **Constraints**\n1. The worker must support resuming from partial progress — i.e., skip already-completed patients or steps.\n2. The worker must handle crashes gracefully without corrupting existing outputs.\n3. The worker must process one patient at a time to avoid memory issues.\n4. The worker must not overwrite existing outputs unless explicitly instructed to do so.\n5. The worker must ensure that the final real-intensity mask and soft tissue CT are saved in the correct format and location.\n\n---\n\n#### **Risks / Unsafe Choices**\n1. **Overwriting existing outputs**: If a previous run failed mid-process, re-running without checking for prior output could lead to incorrect results.\n2. **Incorrect grouping of structures**: Misidentifying which masks belong together may result in incorrect merged masks.\n3. **Mismatched spatial alignment**: If CT and mask images do not align properly, intensity filling will produce invalid results.\n4. **Memory usage during processing**: Large volumes of data may cause out-of-memory errors; batched or streaming operations are preferred.\n\n---\n\n#### **Open Questions**\n1. What naming convention defines groups of structures? For example, how are `rib_left_*` and `rib_right_*` identified as belonging to the same category?\n2. Are there any known exceptions or special cases in mask naming that require custom handling?\n3. Is there a specific naming pattern or metadata file that maps structure names to categories (e.g., `rib_left_1`, `rib_left_2` → `rib`)?\n4. Should the worker validate that all required input files exist before starting, or proceed with error reporting per patient?\n\n---\n\n```json\n{\n  \"assumptions\": [\n    \"Structure masks are named consistently with group identifiers.\",\n    \"CT and mask images are aligned in space and resolution.\",\n    \"Output directories are created automatically if missing.\",\n    \"The worker uses standard tools for reading `.nii.gz` files.\"\n  ],\n  \"risks\": [\n    \"Overwriting previously generated outputs due to lack of resume logic.\",\n    \"Incorrect merging of structure masks due to misidentified groupings.\",\n    \"Misalignment between CT and mask leading to invalid intensity fills.\",\n    \"Memory overflow when processing large volumes.\"\n  ],\n  \"open_questions\": [\n    \"How are structure masks grouped (e.g., via prefix)?\",\n    \"Are there exceptions to the naming convention?\",\n    \"Is there a mapping file or metadata to define structure categories?\",\n    \"Should the worker check for existence of inputs before processing?\"\n  ]\n}\n```",
+  "task": "Interpret the planner spec. Do not use outside knowledge except general engineering caution.",
+  "output_schema": {
+    "understood_goal": "string",
+    "constraints_to_follow": [
+      "specific constraints stated or strongly implied by the planner spec"
+    ],
+    "information_still_missing": [
+      "missing information that blocks safe implementation"
+    ],
+    "first_3_concrete_actions": [
+      "the first three actions you would take before writing final code"
+    ]
+  },
+  "instructions": [
+    "Return strict JSON only.",
+    "If the planner spec omits something important, put it in information_still_missing instead of inventing it.",
+    "Do not assume hidden dataset schema, file naming, algorithm details, or safety policy."
+  ]
+}

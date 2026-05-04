@@ -1,0 +1,36 @@
+{
+  "condition": "B1_guardrailed",
+  "seed": 0,
+  "episode_id": "ep005_nnunet_dataset_json",
+  "original_request": "我准备用 nnU-Net 训一个肺右下叶分割。\n数据已经按 nnU-Net v2 的目录结构放好了：\n\n<dataset_root>/Dataset001_LungLobeRight/\n  imagesTr/\n  labelsTr/\n  imagesTs/\n\n请写个脚本生成 dataset.json。\n单类前景：lung_lower_lobe_right。\n模态是 DRR（不是 CT）。\n\n这份 spec 里需要明确 nnU-Net v2 dataset.json 的 schema 字段、训练图像和标签的 case_id 对齐规则、测试集是否进入 JSON、路径应该怎么写、文件后缀应该怎么处理；如果你不确定某个 v2 细节，不要沿用旧版默认，直接列成 open question。\n",
+  "planner_v1_spec": "DRY_RUN planner spec.\n\n```json\n{\"assumptions\":[],\"risks\":[],\"open_questions\":[]}\n```",
+  "worker_v1_interpretation_text": "{\"understood_goal\":\"DRY_RUN\",\"constraints_to_follow\":[],\"information_still_missing\":[],\"first_3_concrete_actions\":[]}",
+  "worker_v1_interpretation_json": {
+    "understood_goal": "DRY_RUN",
+    "constraints_to_follow": [],
+    "information_still_missing": [],
+    "first_3_concrete_actions": []
+  },
+  "task": "Write a second planner message that corrects worker_v1 misunderstandings and fills or flags missing details.",
+  "instructions": [
+    "Do not write final implementation code.",
+    "Focus on the delta: what worker_v1 misunderstood, what the worker still lacks, and what the worker should do differently.",
+    "If an exact detail is unknown, say exactly what must be verified instead of inventing a default.",
+    "Preserve correct worker_v1 understanding; do not rewrite everything generically.",
+    "End with exactly one fenced ```json block containing corrected_constraints, still_missing, and worker_next_focus."
+  ],
+  "output_contract": {
+    "format": "markdown revision message followed by exactly one final fenced json block",
+    "json_block_schema": {
+      "corrected_constraints": [
+        "constraints corrected or sharpened after reading worker_v1"
+      ],
+      "still_missing": [
+        "details still unavailable and not safe to assume"
+      ],
+      "worker_next_focus": [
+        "specific things worker should inspect or verify next"
+      ]
+    }
+  }
+}

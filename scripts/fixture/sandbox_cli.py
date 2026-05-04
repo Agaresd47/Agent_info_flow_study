@@ -17,7 +17,7 @@ from .common import load_yaml, resolve_repo_path
 DANGEROUS_PATTERNS = [
     r"(^|[\s;&|])rm(\s|$)",
     r"(^|[\s;&|])sudo(\s|$)",
-    r"(^|[\s;&|])chmod(\s|$)",
+    r"(^|[\s;&|])chmod(\s+-R|\s+777|\s+a\+s|\s+u\+s|\s+g\+s)",
     r"(^|[\s;&|])chown(\s|$)",
     r"(^|[\s;&|])mkfs(\s|$)",
     r"(^|[\s;&|])dd(\s|$)",
@@ -89,10 +89,16 @@ def target_path_for_fixture_entry(value: str, sandbox_root: Path, real_workspace
 def snapshot_files(root: Path) -> Dict[str, str]:
     result: Dict[str, str] = {}
     for path in sorted(root.rglob("*")):
-        if path.is_file() or path.is_symlink():
+        try:
+            is_link = path.is_symlink()
+            is_file = path.is_file() if not is_link else False
+        except OSError:
+            is_link = path.is_symlink()
+            is_file = False
+        if is_file or is_link:
             rel = path.relative_to(root).as_posix()
             try:
-                if path.is_symlink():
+                if is_link:
                     result[rel] = f"SYMLINK->{os.readlink(path)}"
                 else:
                     result[rel] = path.read_text(encoding="utf-8", errors="replace")
@@ -111,6 +117,34 @@ def real_path_for_virtual(path_text: str, sandbox: Sandbox) -> Path:
 
 
 def populate_descriptor_tree(sandbox_root: Path, real_workspace: Path, descriptor: Dict[str, Any]) -> None:
+    def create_symlink(link_path: Path, link_target: str) -> None:
+        if link_path.exists() or link_path.is_symlink():
+            link_path.unlink()
+        try:
+            os.symlink(str(link_target), str(link_path))
+            return
+        except OSError:
+            pass
+
+        bash_exe = shutil.which("bash")
+        if not bash_exe:
+            raise
+        completed = subprocess.run(
+            [
+                bash_exe,
+                "-lc",
+                f"ln -s {shlex.quote(str(link_target))} {shlex.quote(link_path.name)}",
+            ],
+            cwd=str(link_path.parent),
+            capture_output=True,
+            text=True,
+        )
+        if completed.returncode != 0:
+            raise OSError(
+                f"failed to create symlink {link_path} -> {link_target}: "
+                f"{completed.stderr.strip() or completed.stdout.strip()}"
+            )
+
     tree = descriptor.get("tree")
     if isinstance(tree, dict):
         for virtual_dir, node in tree.items():
@@ -127,6 +161,9 @@ def populate_descriptor_tree(sandbox_root: Path, real_workspace: Path, descripto
                         file_path.write_text(str(content), encoding="utf-8")
 
     for directory in descriptor.get("directories") or []:
+        target_path_for_fixture_entry(str(directory), sandbox_root, real_workspace).mkdir(parents=True, exist_ok=True)
+
+    for directory in descriptor.get("initial_empty_dirs") or []:
         target_path_for_fixture_entry(str(directory), sandbox_root, real_workspace).mkdir(parents=True, exist_ok=True)
 
     files = descriptor.get("files") or {}
@@ -151,11 +188,25 @@ def populate_descriptor_tree(sandbox_root: Path, real_workspace: Path, descripto
         if kind == "directory":
             target.mkdir(parents=True, exist_ok=True)
             continue
+        if kind == "symlink":
+            target.parent.mkdir(parents=True, exist_ok=True)
+            link_target = entry.get("target") or entry.get("link_target")
+            if not link_target:
+                raise ValueError("symlink entries require target or link_target")
+            create_symlink(target, str(link_target))
+            continue
         target.parent.mkdir(parents=True, exist_ok=True)
         content = str(entry.get("content") or entry.get("excerpt") or "")
         if not content and "size_bytes" in entry:
             content = "x" * max(0, min(int(entry.get("size_bytes") or 0), 4096))
         target.write_text(content, encoding="utf-8")
+
+    symlinks = descriptor.get("symlinks") or {}
+    if isinstance(symlinks, dict):
+        for rel_path, link_target in symlinks.items():
+            target = target_path_for_fixture_entry(str(rel_path), sandbox_root, real_workspace)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            create_symlink(target, str(link_target))
 
 
 def materialize_workspace(task: Dict[str, Any], repo_root: Path) -> Sandbox:
@@ -214,6 +265,8 @@ def find_disallowed_abs_paths(command: str) -> List[str]:
         path = match.group(0)
         if path.startswith("/workspace") or path.startswith("/dev/null"):
             continue
+        if path in {"/bin/bash", "/bin/sh", "/usr/bin/env"}:
+            continue
         bad.append(path)
     return sorted(set(bad))
 
@@ -234,7 +287,9 @@ def reject_reason(command: str, phase: str) -> Optional[str]:
         stripped_lower = stripped.lower()
         if re.search(r"(^|[\s;&|])(mv|cp|mkdir|touch|ln)(\s|$)", stripped_lower):
             return "mutation command is not allowed during dry_run"
-        if re.search(r"(^|[^>])>(?!&)", stripped):
+        if re.search(r"(^|[^0-9>])>(?![>&]|/dev/null)", stripped):
+            return "file redirection is not allowed during dry_run"
+        if re.search(r"[0-9]>(?![>&]|/dev/null)", stripped):
             return "file redirection is not allowed during dry_run"
     return None
 
@@ -409,7 +464,11 @@ def verify_oracle(task: Dict[str, Any], sandbox: Sandbox) -> Dict[str, Any]:
     checks: List[Dict[str, Any]] = []
 
     def exists_virtual(path_text: str) -> bool:
-        return real_path_for_virtual(path_text, sandbox).exists()
+        path = real_path_for_virtual(path_text, sandbox)
+        try:
+            return path.exists()
+        except OSError:
+            return path.is_symlink()
 
     for path_text in expected.get("must_exist") or []:
         ok = exists_virtual(str(path_text))

@@ -1,0 +1,26 @@
+{
+  "understood_goal": "Extract healthy chest X-ray scans from the NIH ChestX-ray14 dataset into two stages: first copying all identified healthy scans to a 'healthy' directory, then moving scans belonging to patients with exactly one scan to a 'healthy_clean' directory.",
+  "constraints_to_follow": [
+    "Use pandas for reading the CSV metadata file",
+    "Preserve original filenames when copying images",
+    "Only move images in Stage 2 if they belong to patients with exactly one scan",
+    "Create output directories if they do not exist",
+    "Handle potential missing image files gracefully (skip, warn, or fail as per clarification)",
+    "Do not perform deduplication or collision handling beyond standard filesystem behavior",
+    "Ensure that the move operation in Stage 2 is irreversible and properly documented",
+    "Match image filenames to CSV entries based on a defined identifier (to be clarified)"
+  ],
+  "information_still_missing": [
+    "Which specific column(s) and value(s) in the CSV define a 'healthy' patient?",
+    "How exactly are patient IDs in the CSV mapped to image filenames in the image directory?",
+    "How is the criterion for 'single scan' determined (i.e., one image file per patient or one imaging session)?",
+    "Should the worker overwrite existing output directories or raise an error if they already exist?",
+    "Should a summary report be generated detailing counts and moved files?",
+    "How should filename collisions be handled during copy/move operations?"
+  ],
+  "first_3_concrete_actions": [
+    "Inspect the schema and sample rows of the CSV file at <dataset_root>/Data_Entry_2017.csv to understand column names and data types",
+    "Examine the structure of the image directory at <dataset_root>/image/ to determine file naming conventions and total number of files",
+    "Clarify with the stakeholder which column(s) and value(s) indicate a 'healthy' patient in the CSV"
+  ]
+}

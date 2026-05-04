@@ -1,0 +1,36 @@
+{
+  "planner_constraint_coverage_score": 1,
+  "planner_risk_flagging_score": 2,
+  "worker_goal_alignment_score": 1,
+  "worker_missing_info_score": 2,
+  "worker_first_action_precision_score": 1,
+  "spec_score": 4,
+  "worker_score": 5,
+  "handoff_performance_score": 4,
+  "final_verdict": "spec_weak",
+  "covered_or_flagged_constraints": [
+    "Planner explicitly flagged that the nnU-Net v2 schema details were unresolved and should not be assumed.",
+    "Planner explicitly called out case ID alignment between training image and label filenames.",
+    "Planner explicitly said only training cases go in `training` and test cases go in `test` if they exist.",
+    "Planner explicitly asked about path handling and file-extension handling rather than inventing defaults."
+  ],
+  "covered_gold_constraints": [
+    "Case ID alignment rule was acknowledged at a high level.",
+    "Test set inclusion was discussed as a separate question.",
+    "Schema requirements were recognized as v2-specific and unresolved."
+  ],
+  "missed_gold_constraints": [
+    "Did not capture that `channel_name` must be a dict with string keys.",
+    "Did not capture that `labels` keys must be strings (`'0'`, `'1'`).",
+    "Did not capture the exact training filename pattern `<case_id>_0000.nii.gz` and label filename `<case_id>.nii.gz`.",
+    "Did not specify relative training/test path prefixes `./imagesTr/`, `./labelsTr/`, `./imagesTs/`.",
+    "Did not explicitly include `file_ending: .nii.gz`.",
+    "Did not explicitly state that `tensorImageSize` should be omitted."
+  ],
+  "forbidden_assumptions_made": [
+    "Worker assumed test cases should be validated against `labelsTs/`, which is not grounded in the planner spec and conflicts with the intended nnU-Net v2 handling of `imagesTs` without labels.",
+    "Worker assumed paths should be relative to the dataset root unless otherwise specified, which was not resolved by the planner."
+  ],
+  "separation_notes": "This episode should separate models on whether they preserve the v2 schema gotchas versus filling gaps with plausible-but-wrong defaults. The worker preserved caution about missing schema details, but also introduced an unsafe label-handling assumption for test cases.",
+  "concise_rationale": "The planner did a decent job surfacing uncertainty, but it failed to preserve several critical nnU-Net v2 specifics that were visible in the task. The worker correctly noticed missing schema information, but it also injected an incorrect test-set label assumption and treated underspecified path handling as if it were decided."
+}

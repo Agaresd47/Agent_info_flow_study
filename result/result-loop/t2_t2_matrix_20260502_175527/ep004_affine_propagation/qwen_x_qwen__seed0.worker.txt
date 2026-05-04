@@ -1,0 +1,23 @@
+{
+  "understood_goal": "Correct affine transformations in medical imaging data by aligning mask affines to match the reference CT affine after cleaning via QR decomposition, ensuring consistent signs in rotation components.",
+  "constraints_to_follow": [
+    "Preserve original data integrity; avoid destructive writes unless explicitly allowed.",
+    "Process ~3000 patients in parallel.",
+    "Handle potential race conditions in parallel execution.",
+    "Do not overwrite files unless explicitly permitted.",
+    "Use standard NIfTI library compatibility (e.g., NiBabel)."
+  ],
+  "information_still_missing": [
+    "Exact file path pattern or naming convention for mask files (e.g., do they all end in `_mask.nii.gz`?).",
+    "Policy for handling missing or unreadable mask files.",
+    "Whether the worker should generate logs or reports of its operations.",
+    "Definition of 'cleaned' affine and acceptable deviation during QR cleanup.",
+    "Confirmation of which affine matrix is considered 'correct' for symbol alignment.",
+    "Any schema rules or metadata formats that must be preserved."
+  ],
+  "first_3_concrete_actions": [
+    "Query the file system to identify all mask files within each patient directory based on NIfTI format (.nii.gz) and infer naming patterns.",
+    "Define a safe processing protocol to prevent overwrites, including backup or temporary storage strategies.",
+    "Clarify whether a log/report generation is required and establish a mechanism for tracking processed patients."
+  ]
+}
